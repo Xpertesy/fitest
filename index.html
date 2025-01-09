@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitnessAI</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            background-color: #f4f4f9;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            margin: 20px 0;
+            font-size: 2rem;
+            color: #333;
+        }
+
+        #exerciseList {
+            width: 80%;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            color: #333;
+            text-align: left;
+        }
+
+        canvas {
+            display: block;
+            width: 80%;
+            height: auto;
+            background-color: #ddd;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+
+        button {
+            width: 80%;
+            padding: 15px;
+            font-size: 1rem;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:active {
+            background-color: #003f7f;
+        }
+
+        #anglesDisplay {
+            width: 80%;
+            margin-bottom: 20px;
+            font-size: 1rem;
+            color: #333;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+</head>
+<body>
+    <h1>FitnessAI</h1>
+    <div id="exerciseList">
+        <p>Select an exercise:</p>
+        <select>
+            <option value="bench_press">Bench Press</option>
+            <option value="squats">Squats</option>
+            <option value="leg_swings">Leg Swings</option>
+            <option value="seated_cable_row">Seated Cable Row</option>
+            <option value="barbell_curl_w_bar">Barbell Curl with W Bar</option>
+            <option value="tricep_dips_parallel_bars">Tricep Dips on Parallel Bars</option>
+            <option value="hammer_curls">Hammer Curls</option>
+            <option value="deadlift">Deadlift</option>
+        </select>
+    </div>
+    
+    <canvas id="fitnessCanvas"></canvas>
+    <div id="anglesDisplay">Angles will appear here...</div>
+    <button id="startStopButton">Start/Stop</button>
+
+    <script>
+        const canvas = document.getElementById('fitnessCanvas');
+        const button = document.getElementById('startStopButton');
+        const anglesDisplay = document.getElementById('anglesDisplay');
+        const context = canvas.getContext('2d');
+
+        // Set canvas size dynamically
+        const setCanvasSize = () => {
+            canvas.width = window.innerWidth * 0.8;
+            canvas.height = canvas.width * 0.6; // Adjust height proportionally if needed
+        };
+
+        // Initialize canvas size on load and resize
+        setCanvasSize();
+        window.addEventListener('resize', setCanvasSize);
+
+        // Video capturing setup
+        const videoElement = document.createElement('video');
+        videoElement.autoplay = true;
+        videoElement.style.display = 'none';
+        document.body.appendChild(videoElement);
+
+        // Define BlazePose connections excluding face landmarks
+        const blazePoseConnections = [
+            [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+            [11, 23], [12, 24], [23, 25], [24, 26], [25, 27],
+            [26, 28], [27, 29], [28, 30]
+        ];
+
+        // Mediapipe Pose setup
+        const pose = new Pose({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        });
+        pose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            smoothSegmentation: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        // Calculate angle between three points
+        const calculateAngle = (a, b, c) => {
+            const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+            let angle = Math.abs(radians * (180 / Math.PI));
+            if (angle > 180) angle = 360 - angle;
+            return angle;
+        };
+
+        // Draw connections between keypoints
+        const drawSkeleton = (landmarks) => {
+            context.strokeStyle = "blue";
+            context.lineWidth = 3;
+
+            blazePoseConnections.forEach(([start, end]) => {
+                const startPoint = landmarks[start];
+                const endPoint = landmarks[end];
+
+                if (startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
+                    context.beginPath();
+                    context.moveTo(startPoint.x * canvas.width, startPoint.y * canvas.height);
+                    context.lineTo(endPoint.x * canvas.width, endPoint.y * canvas.height);
+                    context.stroke();
+                }
+            });
+        };
+
+        // Update angles display
+        const updateAnglesDisplay = (landmarks) => {
+            const angles = {};
+
+            // Right side angles
+            angles.rightElbow = calculateAngle(landmarks[11], landmarks[13], landmarks[15]);
+            angles.rightShoulder = calculateAngle(landmarks[13], landmarks[11], landmarks[23]);
+            angles.rightHip = calculateAngle(landmarks[11], landmarks[23], landmarks[25]);
+            angles.rightKnee = calculateAngle(landmarks[23], landmarks[25], landmarks[27]);
+
+            // Left side angles
+            angles.leftElbow = calculateAngle(landmarks[12], landmarks[14], landmarks[16]);
+            angles.leftShoulder = calculateAngle(landmarks[14], landmarks[12], landmarks[24]);
+            angles.leftHip = calculateAngle(landmarks[12], landmarks[24], landmarks[26]);
+            angles.leftKnee = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
+
+            // Format angles as text
+            anglesDisplay.textContent = `
+                Right Elbow: ${angles.rightElbow.toFixed(1)}°, 
+                Right Shoulder: ${angles.rightShoulder.toFixed(1)}°, 
+                Right Hip: ${angles.rightHip.toFixed(1)}°, 
+                Right Knee: ${angles.rightKnee.toFixed(1)}°, 
+                Left Elbow: ${angles.leftElbow.toFixed(1)}°, 
+                Left Shoulder: ${angles.leftShoulder.toFixed(1)}°, 
+                Left Hip: ${angles.leftHip.toFixed(1)}°, 
+                Left Knee: ${angles.leftKnee.toFixed(1)}°
+            `;
+        };
+
+        pose.onResults((results) => {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+            if (results.poseLandmarks) {
+                // Draw skeleton
+                drawSkeleton(results.poseLandmarks);
+
+                // Draw keypoints
+                results.poseLandmarks.forEach((landmark, index) => {
+                    if (index >= 11 && index <= 32 && landmark.visibility > 0.5) { // Ignore face landmarks
+                        context.beginPath();
+                        context.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
+                        context.fillStyle = "red";
+                        context.fill();
+                    }
+                });
+
+                // Update angles
+                updateAnglesDisplay(results.poseLandmarks);
+            }
+        });
+
+        // Start Mediapipe Camera
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await pose.send({ image: videoElement });
+            },
+            width: 1280,
+            height: 720
+        });
+
+        // Start/Stop button functionality
+        let isRunning = false;
+        button.addEventListener('click', () => {
+            isRunning = !isRunning;
+            button.textContent = isRunning ? 'Stop' : 'Start';
+            if (isRunning) {
+                camera.start();
+                console.log('Pose detection started');
+            } else {
+                camera.stop();
+                console.log('Pose detection stopped');
+            }
+        });
+    </script>
+</body>
+</html>
