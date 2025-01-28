@@ -23,6 +23,11 @@
             font-size: 2rem;
             color: #333;
         }
+        h2 {
+            margin: 20px 0;
+            font-size: 1.7rem;
+            color: #333;
+        }
 
         #exerciseList {
             width: 80%;
@@ -119,8 +124,9 @@
 </head>
 
 <body>
-    <h1>FitnessAI</h1>
-    <div id="exerciseList">
+    <h1>FitPro</h1>
+    <h2>Squats</h2>
+    <!-- <div id="exerciseList">
         <p>Select an exercise:</p>
         <select id="exerciseSelector">
             <option value="bench_press">Bench Press</option>
@@ -132,7 +138,7 @@
             <option value="hammer_curls">Hammer Curls</option>
             <option value="deadlift">Deadlift</option>
         </select>
-    </div>
+    </div> -->
 
     <canvas id="fitnessCanvas" width="640" height="360"></canvas>
     <div id="anglesDisplay">Angles will appear here...</div>
@@ -323,49 +329,55 @@
             button.textContent = isRunning ? 'Stop' : 'Start';
             if (isRunning) {
                 camera.start();
-                recognition.start();
+                //recognition.start();
+                startExerciseAssistance();
                 console.log('Pose detection started');
             } else {
                 camera.stop();
-                recognition.stop();
+                //recognition.stop();
+                stopExerciseAssistance();
                 console.log('Pose detection stopped');
             }
         });
 
         // Algorithm for exercise validation
-        const exerciseAlgorithms = {
-            squats: (angles) => {
-                if (angles.rightKnee < 90) {
-                    return { correct: true, message: 'Great squat form!' };
-                } else {
-                    return { correct: false, message: `Bend your knees more. Current knee angle: ${angles.rightKnee.toFixed(1)}°` };
-                }
-            },
-            // Add other exercises here
-        };
+        // const exerciseAlgorithms = {
+        //     squats: (angles) => {
+        //         if (angles.rightKnee < 90) {
+        //             return { correct: true, message: 'Great squat form!' };
+        //         } else {
+        //             return { correct: false, message: `Bend your knees more. Current knee angle: ${angles.rightKnee.toFixed(1)}°` };
+        //         }
+        //     },
+        //     // Add other exercises here
+        // };
 
         // Voice recognition setup
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.lang = 'en-US';
+        // const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        // const recognition = new SpeechRecognition();
+        // recognition.continuous = false;
+        // recognition.lang = 'en-US';
+        // const grammar = "#JSGF V1.0; grammar commands; public <command> = go | start | stop ;";
+        // const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+        // const speechRecognitionList = new SpeechGrammarList();
+        // speechRecognitionList.addFromString(grammar, 1);
+        // recognition.grammars = speechRecognitionList;
 
+        // recognition.onresult = (event) => {
+        //     const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
 
-        recognition.onresult = (event) => {
-            const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+        //     if (transcript === "go" || transcript === "start") {
+        //         console.log("Voice command: GO");
+        //         startExerciseAssistance();
+        //     } else if (transcript === "stop") {
+        //         console.log("Voice command: STOP");
+        //         stopExerciseAssistance();
+        //     }
+        // };
 
-            if (transcript === "go") {
-                console.log("Voice command: GO");
-                startExerciseAssistance();
-            } else if (transcript === "stop") {
-                console.log("Voice command: STOP");
-                stopExerciseAssistance();
-            }
-        };
-
-        recognition.onerror = (event) => {
-            console.error("Voice recognition error:", event.error);
-        };
+        // recognition.onerror = (event) => {
+        //     console.error("Voice recognition error:", event.error);
+        // };
 
         function startExerciseAssistance() {
             squatsEx = null;
@@ -387,8 +399,8 @@
 
 
         function squatsAssistance(angles) {
-            const theAngle = parseFloat(angles.rightKnee.toFixed(1));
-            const theHipAngle = parseFloat(angles.rightHip.toFixed(1));
+            const theAngle = Math.floor(parseFloat(angles.rightKnee.toFixed(1)));
+            const theHipAngle = Math.floor(parseFloat(angles.rightHip.toFixed(1)));
             if (theAngle < 0 || theHipAngle < 0) {
                 return;
             }
@@ -422,34 +434,40 @@
 
                 if (squatsEx.dirCount < -5) {
                     squatsEx.dirCount = 0;
+
                     if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                         squatsEx.direction = EXCERCISE_DIRECTION_UP;
                     }
                     else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction
-                        squatsEx.direction = EXCERCISE_DIRECTION_UP;
-                        squatsEx.counter++;
-                        if (squatsEx.minAngle > 50.0) {
-                            let notice = 'Squat lower.';
-                            playVoice(notice);
-                            console.log(notice + ":" + squatsEx.minAngle);
-                        }
-                        else if (squatsEx.minAngle < 45.0) {
-                            let notice = "Don't stoop too low, take care of your knees.";
-                            playVoice(notice);
-                            console.log(notice + ":" + squatsEx.minAngle);
+                        if (squatsEx.minAngle > 95.0) {
+                            squatsEx = null;
                         }
                         else {
-                            let notice = "" + (squatsEx.counter);
-                            playVoice(notice);
-                            console.log(notice + ":" + squatsEx.angle);
+                            squatsEx.direction = EXCERCISE_DIRECTION_UP;
+                            squatsEx.counter++;
+                            if (squatsEx.minAngle > 50.0) {
+                                let notice = 'Squat lower.';
+                                playVoice(notice);
+                                console.log(notice + ":" + squatsEx.minAngle);
+                            }
+                            else if (squatsEx.minAngle < 45.0) {
+                                let notice = "Don't stoop too low, take care of your knees.";
+                                playVoice(notice);
+                                console.log(notice + ":" + squatsEx.minAngle);
+                            }
+                            else {
+                                let notice = "" + (squatsEx.counter);
+                                playVoice(notice);
+                                console.log(notice + ":" + squatsEx.angle);
+                            }
+                            squatsEx.minAngle = 180;
+                            squatsEx.maxAngle = 0;
+                            squatsEx.minHipAngle = 180;
+                            squatsEx.maxHipAngle = 0;
+                            // if (squatsEx.counter > 30) {
+                            //     stopExerciseAssistance();
+                            // }
                         }
-                        squatsEx.minAngle = 180;
-                        squatsEx.maxAngle = 0;
-                        squatsEx.minHipAngle = 180;
-                        squatsEx.maxHipAngle = 0;
-                        // if (squatsEx.counter > 30) {
-                        //     stopExerciseAssistance();
-                        // }
                     }
                 }
             }
@@ -462,54 +480,62 @@
 
                 if (squatsEx.dirCount > 5) {
                     squatsEx.dirCount = 0;
+
                     if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                         squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
                         squatsEx.startTime = Date.now();
                     }
                     else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction
                     {
-                        squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+                        if (theAngle < 100 || squatsEx.angle - theAngle > 20) {
+                            squatsEx = null;
+                        }
+                        else {
+                            squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
 
-                        if (squatsEx.maxAngle > 176.0) {
-                            let notice = 'Do not straighten your legs completely.';
-                            playVoice(notice);
-                            console.log(notice + ":" + squatsEx.maxAngle);
-                        }
-                        else if (Math.round(squatsEx.maxAngle + 0.5) < 170.0 && squatsEx.maxAngle > 160.0) {
-                            let notice = 'Not high enough, go higher.';
-                            playVoice(notice);
-                            console.log(notice + ":" + squatsEx.maxAngle);
-                        }
-                        else if (squatsEx.startTime > 0 && squatsEx.counter > 0) {
-                            const period = Date.now() - squatsEx.startTime;
-                            if (period > 2000 && period < 3000) {
-                                let notice = "Don't rush, do it slower.";
+                            if (squatsEx.maxAngle > 176.0) {
+                                let notice = 'Do not straighten your legs completely.';
                                 playVoice(notice);
-                                console.log(notice + `: ${squatsEx.maxAngle}, period: ${period}`);
+                                console.log(notice + ":" + squatsEx.maxAngle);
                             }
-                            else if (period > 15000) {
-                                let notice = "Faster!";
+                            else if (Math.round(squatsEx.maxAngle + 0.5) < 170.0 && squatsEx.maxAngle > 160.0) {
+                                let notice = 'Not high enough, go higher.';
                                 playVoice(notice);
-                                console.log(notice + `: ${squatsEx.angle}, period: ${period}`);
+                                console.log(notice + ":" + squatsEx.maxAngle);
                             }
+                            else if (squatsEx.startTime > 0 && squatsEx.counter > 0) {
+                                const period = Date.now() - squatsEx.startTime;
+                                if (period > 2000 && period < 3000) {
+                                    let notice = "Don't rush, do it slower.";
+                                    playVoice(notice);
+                                    console.log(notice + `: ${squatsEx.maxAngle}, period: ${period}`);
+                                }
+                                else if (period > 15000) {
+                                    let notice = "Faster!";
+                                    playVoice(notice);
+                                    console.log(notice + `: ${squatsEx.angle}, period: ${period}`);
+                                }
+                            }
+                            if (squatsEx.minHipAngle < 45) {
+                                let notice = "Don't fall forward too much!";
+                                playVoice(notice);
+                                console.log(notice + `: ${squatsEx.minHipAngle}`);
+                            }
+                            squatsEx.minAngle = 180;
+                            squatsEx.maxAngle = 0;
+                            squatsEx.minHipAngle = 180;
+                            squatsEx.maxHipAngle = 0;
+                            squatsEx.startTime = Date.now();
+                            //console.log(`squatsEx.startTime: ${squatsEx.startTime}`);
                         }
-                        if (squatsEx.minHipAngle < 45) {
-                            let notice = "Don't fall forward too much!";
-                            playVoice(notice);
-                            console.log(notice + `: ${squatsEx.minHipAngle}`);
-                        }
-                        squatsEx.minAngle = 180;
-                        squatsEx.maxAngle = 0;
-                        squatsEx.minHipAngle = 180;
-                        squatsEx.maxHipAngle = 0;
-                        squatsEx.startTime = Date.now();
-                        //console.log(`squatsEx.startTime: ${squatsEx.startTime}`);
                     }
                 }
             }
 
             try {
-                squatsEx.angle = theAngle;
+                if (squatsEx) {
+                    squatsEx.angle = theAngle;
+                }
             } catch (error) {
                 console.error(error);
             }
