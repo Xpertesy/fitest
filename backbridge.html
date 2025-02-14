@@ -99,6 +99,19 @@
             padding: 10px;
             text-align: center;
         }
+        .back-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 16px;
+        }
 
         @media (min-width: 800px) {
             .container {
@@ -124,6 +137,8 @@
 </head>
 
 <body>
+    <a href="index.html" class="back-button">Home</a>
+
     <h1>Back Bridge</h1>   
     
     <canvas id="fitnessCanvas" width="640" height="360"></canvas>
@@ -385,9 +400,9 @@
 
 
         function squatsAssistance(angles) {
-            const theAngle = Math.floor(parseFloat(angles.rightKnee.toFixed(1)));
-            const theHipAngle = Math.floor(parseFloat(angles.rightHip.toFixed(1)));
-            if (theAngle < 0 || theHipAngle < 0) {
+            // const theAngle = Math.floor(parseFloat(angles.rightKnee.toFixed(1)));
+            const theAngle = Math.floor(parseFloat(angles.rightHip.toFixed(1)));
+            if (theAngle < 0 ) {
                 return;
             }
             if (!squatsEx) {
