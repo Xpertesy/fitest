@@ -144,51 +144,45 @@
 
     <canvas id="fitnessCanvas" width="640" height="360"></canvas>
     <div id="anglesDisplay">Angles will appear here...</div>
-    <button id="startStopButton">Start/Stop</button>
-    <!-- <input type="file" id="uploadVideo" accept="video/*"> -->
+    <button id="startStopButton">Start</button>
+    <button id="playInstructions">Instructions</button>
+    <video id="recordedVideo" controls="true"></video>
+    <video id="hidenVideo" style="display: none;"></video>
+    <input type="file" id="uploadVideo" accept="video/*">
 
     <script>
+
+        // Video capturing setup
+        const videoElement = document.getElementById("hidenVideo");//document.createElement('video');
+        //videoElement.autoplay = true;
+        // videoElement.style.display = 'none';
+        // document.body.appendChild(videoElement);
+
         const canvas = document.getElementById('fitnessCanvas');
         const button = document.getElementById('startStopButton');
+        const buttonInstructions = document.getElementById('playInstructions');
         const anglesDisplay = document.getElementById('anglesDisplay');
         const context = canvas.getContext('2d');
         const exerciseSelector = document.getElementById('exerciseSelector');
         let exerciseCounting = null;
         let exerciseAssistance = noEx;
 
-        function playVoice(text) {
-            //return;
-            const msg = new SpeechSynthesisUtterance(text);
-            //msg.lang = "en-US";
-            window.speechSynthesis.speak(msg);
-        }
-
         // Set canvas size dynamically
         const setCanvasSize = () => {
             canvas.width = window.innerWidth * 0.8;
             canvas.height = canvas.width * 0.6; // Adjust height proportionally if needed
         };
-
         // Initialize canvas size on load and resize
         setCanvasSize();
         window.addEventListener('resize', setCanvasSize);
 
-        // Video capturing setup
-        const videoElement = document.createElement('video');
-        videoElement.autoplay = true;
-        videoElement.style.display = 'none';
-        document.body.appendChild(videoElement);
 
         // Define BlazePose connections excluding face landmarks
         const blazePoseConnections = [
-            [11, 23], [23, 25], [25, 27], [12, 24], [24, 26], [26, 28]
+            [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+            [11, 23], [12, 24], [23, 25], [24, 26], [25, 27],
+            [26, 28], [27, 29], [28, 30]
         ];
-
-        // const blazePoseConnections = [
-        //     [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
-        //     [11, 23], [12, 24], [23, 25], [24, 26], [25, 27],
-        //     [26, 28], [27, 29], [28, 30]
-        // ];
 
         // Mediapipe Pose setup
         const pose = new Pose({
@@ -201,6 +195,39 @@
             smoothSegmentation: true,
             minDetectionConfidence: 0.9,
             minTrackingConfidence: 0.5
+        });
+        pose.onResults((results) => {
+            canvas.width = window.innerWidth * 0.9;
+            canvas.height = canvas.width * results.image.height / results.image.width;
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            //drawMirroredImage(results.image);
+            context.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+            if (results.poseLandmarks) {
+                // Draw skeleton
+                drawSkeleton(results.poseLandmarks);
+
+                // Draw keypoints
+                results.poseLandmarks.forEach((landmark, index) => {
+                    if (index >= 11 && index <= 32 && landmark.visibility > 0.5) { // Ignore face landmarks
+                        context.beginPath();
+                        context.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
+                        context.fillStyle = "red";
+                        context.fill();
+                    }
+                });
+
+                // Update angles
+                updateAnglesDisplay(results.poseLandmarks);
+            }
+        });
+        // Start Mediapipe Camera
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await pose.send({ image: videoElement });
+            },
+            //width: 1280,
+            //height: 720
         });
 
         // Calculate angle between three points
@@ -231,8 +258,6 @@
         const angles = {};
         // Update angles display
         const updateAnglesDisplay = (landmarks) => {
-
-
             // Right side angles
             // angles.rightElbow = calculateAngle(landmarks[11], landmarks[13], landmarks[15]);
             // angles.rightShoulder = calculateAngle(landmarks[13], landmarks[11], landmarks[23]);
@@ -245,55 +270,14 @@
             angles.leftHip = calculateAngle(landmarks[12], landmarks[24], landmarks[26]);
             angles.leftKnee = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
 
-            // angles.rightElbow = isValidSet(landmarks[11], landmarks[13], landmarks[15]) ? calculateAngle(landmarks[11], landmarks[13], landmarks[15]) : -1;
-            // angles.rightShoulder = isValidSet(landmarks[13], landmarks[11], landmarks[23]) ? calculateAngle(landmarks[13], landmarks[11], landmarks[23]) : -1;
-            // angles.rightHip = isValidSet(landmarks[11], landmarks[23], landmarks[25]) ? calculateAngle(landmarks[11], landmarks[23], landmarks[25]) : -1;
-            // angles.rightKnee = isValidSet(landmarks[23], landmarks[25], landmarks[27]) ? calculateAngle(landmarks[23], landmarks[25], landmarks[27]) : -1;
-
-            // // Left side angles
-            // angles.leftElbow = isValidSet(landmarks[12], landmarks[14], landmarks[16]) ? calculateAngle(landmarks[12], landmarks[14], landmarks[16]) : -1;
-            // angles.leftShoulder = isValidSet(landmarks[14], landmarks[12], landmarks[24]) ? calculateAngle(landmarks[14], landmarks[12], landmarks[24]) : -1;
-            // angles.leftHip = isValidSet(landmarks[12], landmarks[24], landmarks[26]) ? calculateAngle(landmarks[12], landmarks[24], landmarks[26]) : -1;
-            // angles.leftKnee = isValidSet(landmarks[24], landmarks[26], landmarks[28]) ? calculateAngle(landmarks[24], landmarks[26], landmarks[28]) : -1;
-
-            // Format angles as text
-            // anglesDisplay.textContent = `
-            //     Right Elbow: ${angles.rightElbow.toFixed(1)}°, 
-            //     Right Shoulder: ${angles.rightShoulder.toFixed(1)}°, 
-            //     Right Hip: ${angles.rightHip.toFixed(1)}°, 
-            //     Right Knee: ${angles.rightKnee.toFixed(1)}°, 
-            //     Left Elbow: ${angles.leftElbow.toFixed(1)}°, 
-            //     Left Shoulder: ${angles.leftShoulder.toFixed(1)}°, 
-            //     Left Hip: ${angles.leftHip.toFixed(1)}°, 
-            //     Left Knee: ${angles.leftKnee.toFixed(1)}°
-            // `;
-
             anglesDisplay.textContent = `
                 Right Hip: ${angles.rightHip.toFixed(1)}°, 
                 Right Knee: ${angles.rightKnee.toFixed(1)}°, 
             `;
 
             exerciseAssistance(angles);
-
-            // Validate exercise
-            // const selectedExercise = exerciseSelector.value;
-            // if (exerciseAlgorithms[selectedExercise]) {
-            //     const result = exerciseAlgorithms[selectedExercise](angles);
-            //     if (!result.correct) {
-            //         const msg = new SpeechSynthesisUtterance(result.message);
-            //         window.speechSynthesis.speak(msg);
-            //     }
-            // }
         };
 
-        function isValidSet(angle1, angle2, angle3) {
-            let result = angle1.visibility > 0.005 && angle2.visibility > 0.005 && angle3.visibility > 0.005;
-            if (!result) {
-                console.log(`angle1.visibility: ${angle1.visibility}, angle2.visibility: ${angle2.visibility}, angle3.visibility: ${angle3.visibility}`);
-            }
-            return result;//angle1.visibility > 0.05 && angle2.visibility > 0.05 && angle3.visibility > 0.05;
-
-        }
         // function drawMirroredImage(image) {
         //     context.save();
         //     context.scale(-1, 1);
@@ -301,44 +285,35 @@
         //     context.restore();
         // }
 
-        pose.onResults((results) => {
-            canvas.width = window.innerWidth * 0.9;
-            canvas.height = canvas.width * results.image.height / results.image.width;
-            context.clearRect(0, 0, canvas.width, canvas.height);
-            //drawMirroredImage(results.image);
-            context.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-
-            if (results.poseLandmarks) {
-                // Draw skeleton
-                drawSkeleton(results.poseLandmarks);
-
-                // Draw keypoints
-                results.poseLandmarks.forEach((landmark, index) => {
-                    if (index >= 11 && index <= 32 && landmark.visibility > 0.5) { // Ignore face landmarks
-                        context.beginPath();
-                        context.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
-                        context.fillStyle = "red";
-                        context.fill();
-                    }
-                });
-
-                // Update angles
-                updateAnglesDisplay(results.poseLandmarks);
-            }
-        });
-
-        // Start Mediapipe Camera
-        const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await pose.send({ image: videoElement });
-            },
-            //width: 1280,
-            //height: 720
-        });
 
         // Start/Stop button functionality
         let isRunning = false;
-        button.addEventListener('click', () => {
+        button.addEventListener('click', startStopButtonClick);
+        buttonInstructions.addEventListener('click', playInstructionsClick);
+        // () => {
+        //     isRunning = !isRunning;
+        //     button.textContent = isRunning ? 'Stop' : 'Start';
+        //     if (isRunning) {
+        //         camera.start();
+        //         //recognition.start();
+        //         startExerciseAssistance();
+        //         console.log('Pose detection started');
+        //     } else {
+        //         camera.stop();
+        //         //recognition.stop();
+        //         stopExerciseAssistance();
+        //         console.log('Pose detection stopped');
+        //     }
+        // });
+
+        function playInstructionsClick() {
+            if (squatsEx) {
+                compileAndPlayInstructions();
+                fileVideoElement.play();
+            }
+        }
+
+        function startStopButtonClick() {
             isRunning = !isRunning;
             button.textContent = isRunning ? 'Stop' : 'Start';
             if (isRunning) {
@@ -347,14 +322,17 @@
                 startExerciseAssistance();
                 console.log('Pose detection started');
             } else {
+                isRecording = false;
                 camera.stop();
                 //recognition.stop();
                 stopExerciseAssistance();
+                //compileAndPlayInstructions();
                 console.log('Pose detection stopped');
             }
-        });
+        }
 
         function startExerciseAssistance() {
+            isStarted = false;
             squatsEx = null;
             exerciseAssistance = squatsAssistance;
         }
@@ -364,20 +342,25 @@
             //squatsEx = null;
         }
 
+        function compileAndPlayInstructions() {
+            let notice = "";
+            if (Object.keys(squatsEx.incorrectInstructions).length > 0) {
+                Object.keys(squatsEx.incorrectInstructions).forEach(key => {
+                    //notice = notice + squatsEx.incorrectInstructions[key];
+                    playVoice(squatsEx.incorrectInstructions[key]);
+                });
+            }
+            else {
+                Object.keys(squatsEx.correctInstructions).forEach(key => {
+                    //notice = notice + squatsEx.correctInstructions[key];
+                    playVoice(squatsEx.correctInstructions[key]);
+                });
+            }
+
+            //playVoice(notice);
+        }
 
         function noEx(angles) { }
-
-        let squatsEx = null;
-        const EXCERCISE_DIRECTION_UP = -1;
-        const EXCERCISE_DIRECTION_DOWN = 1;
-        const EXCERCISE_DIRECTION_NONE = 0;
-
-        const minAngle = 45;
-        const downAmplitude = 30;
-        const maxAngle = 180;
-        const upAmplitude = 30;
-        const directionCounter = 5;
-        const invalidRange = [75, 150];
         // const voiceInstructions = [
         //     'Молодец, спина прямая!', //0
         //     'Хорошо держишь колени в стороны!', //1
@@ -396,23 +379,59 @@
         //     'Садишься низко, молодец!'   //13
         // ];
 
-        const voiceInstructions = [
-            "Good job, keep your back straight!", //0
-            "You're keeping your knees out to the sides well!", //1
-            "Don't forget to breathe!", //2
-            "Sit deeper!", //3
-            "Don't sit too low, watch your knees!", //4
-            "Straighten your back and lower back!", //5
-            "Move your pelvis further back!", //6
-            "Press your heels into the floor!", //7
-            "Knees out to the sides!", //8
-            "Don't round your back! Keep your neck straight!", //9
-            "Breathe in through your nose and slowly sit down", //10
-            "Exhale as you stand up!", //11
-            "Push your heels into the floor as you stand up!", //11
-            "Great range of motion!", //12
-            "You're sitting low, well done!" //13
+        const correctVoiceInstructions = [
+            "Good job, keep your back straight!", //0            
+            "Great range of motion!", //1
+            "You're sitting low, well done!", //2
+            "You're keeping your knees out to the sides well!" //3
         ];
+
+        const incorrectVoiceInstructions = [
+            "Sit deeper!", //0
+            "Don't sit too low, watch your knees!", //1
+            "Straighten your back and lower back!", //2
+            "Move your pelvis further back!", //3            
+            "Knees out to the sides!", //4
+            "Don't round your back! Keep your neck straight!", //5
+            "Breathe in through your nose and slowly sit down", //6
+            "Exhale as you stand up!", //7
+            "Push your heels into the floor as you stand up!", //8
+            "Don't forget to breathe!", //9
+            "Press your heels into the floor!", //10
+        ];
+
+        // const voiceInstructions = [
+        //     "Good job, keep your back straight!", //0
+        //     "You're keeping your knees out to the sides well!", //1
+        //     "Don't forget to breathe!", //2
+        //     "Sit deeper!", //3
+        //     "Don't sit too low, watch your knees!", //4
+        //     "Straighten your back and lower back!", //5
+        //     "Move your pelvis further back!", //6
+        //     "Press your heels into the floor!", //7
+        //     "Knees out to the sides!", //8
+        //     "Don't round your back! Keep your neck straight!", //9
+        //     "Breathe in through your nose and slowly sit down", //10
+        //     "Exhale as you stand up!", //11
+        //     "Push your heels into the floor as you stand up!", //11
+        //     "Great range of motion!", //12
+        //     "You're sitting low, well done!" //13
+        // ];
+
+        let squatsEx = null;
+        const EXCERCISE_DIRECTION_UP = -1;
+        const EXCERCISE_DIRECTION_DOWN = 1;
+        const EXCERCISE_DIRECTION_NONE = 0;
+
+        const minAngle = 45;
+        const downAmplitude = 30;
+        const maxAngle = 180;
+        const upAmplitude = 30;
+        const directionCounter = 5;
+        const invalidRange = [75, 150];
+        let isStarted = false;
+        //let instructions = {};
+
 
         function squatsAssistance(angles) {
             const theAngle = Math.floor(parseFloat(angles.rightKnee.toFixed(1)));
@@ -435,7 +454,12 @@
                     startTime: Date.now(),
                     dirCount: 0,
                     test: 0,
+                    incorrectInstructions: {},
+                    correctInstructions: {},
                     direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
+                }
+                if (!isRecording && camera.g) {
+                    onGotRecordingStream(camera.g);
                 }
             }
             squatsEx.maxAngle = Math.max(squatsEx.maxAngle, theAngle);
@@ -461,36 +485,64 @@
                     else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction from down to up
                         if (squatsEx.minAngle > 95.0) {
                             console.log("notice: squatsEx.minAngle > 95.0");
-                            squatsEx = null;
+
+                            if (isStarted) {
+                                startStopButtonClick();
+                            }
+                            else {
+                                squatsEx = null;
+                                resetRecordings();
+                            }
                         }
                         else {
                             squatsEx.direction = EXCERCISE_DIRECTION_UP;
                             squatsEx.counter++;
+                            isStarted = squatsEx.counter > 1;
                             if (squatsEx.minAngle > minAngle + downAmplitude) {
-                                let notice = voiceInstructions[3];
-                                playVoice(notice);
-                                console.log(notice + ":" + squatsEx.minAngle);
+                                //let notice = voiceInstructions[3];
+                                //playVoice(notice);
+                                //console.log(notice + ":" + squatsEx.minAngle);
+                                //squatsEx.instructions[3] = voiceInstructions[3];
+
+                                squatsEx.incorrectInstructions[0] = incorrectVoiceInstructions[0];
+                                console.log(squatsEx.incorrectInstructions[0]);
                             }
                             else if (squatsEx.minAngle < minAngle) {
-                                let notice = voiceInstructions[4];
-                                playVoice(notice);
-                                console.log(notice + ":" + squatsEx.minAngle);
+                                //squatsEx.instructions[4] = voiceInstructions[4];
+                                squatsEx.incorrectInstructions[1] = incorrectVoiceInstructions[1];
+                                console.log(squatsEx.incorrectInstructions[1]);
+                                // let notice = voiceInstructions[4];
+                                // playVoice(notice);
+                                //console.log(notice + ":" + squatsEx.minAngle);
                             }
                             else if (squatsEx.minHipAngle < 45.0) {
-                                let notice = voiceInstructions[5];
-                                playVoice(notice);
-                                console.log(notice + ":" + squatsEx.minHipAngle);
+                                //squatsEx.instructions[5] = voiceInstructions[5];
+                                squatsEx.incorrectInstructions[2] = incorrectVoiceInstructions[2];
+                                console.log(squatsEx.incorrectInstructions[2]);
+                                // let notice = voiceInstructions[5];
+                                // playVoice(notice);
+                                //console.log(notice + ":" + squatsEx.minHipAngle);
                             }
                             else if (squatsEx.minHipAngle > 75.0) {
-                                let notice = voiceInstructions[6];
-                                playVoice(notice);
-                                console.log(notice + ":" + squatsEx.minHipAngle);
+                                //squatsEx.instructions[6] = voiceInstructions[6];
+                                squatsEx.incorrectInstructions[3] = incorrectVoiceInstructions[3];
+                                console.log(squatsEx.incorrectInstructions[3]);
+                                // let notice = voiceInstructions[6];
+                                // playVoice(notice);
+                                //console.log(notice + ":" + squatsEx.minHipAngle);
                             }
                             else {
-                                let notice = voiceInstructions[7];
-                                playVoice(notice);
-                                console.log(notice + ":" + squatsEx.angle);
+                                // let notice = voiceInstructions[7];
+                                // playVoice(notice);
+                                // console.log(notice + ":" + squatsEx.angle);
+                                // let notice = "" + (squatsEx.counter);
+                                // playVoice(notice);
+                                // console.log(notice + ":" + squatsEx.angle);
                             }
+                            let notice = "" + (squatsEx.counter);
+                            playVoice(notice);
+                            console.log(notice + ":" + squatsEx.angle);
+
                             squatsEx.minAngle = 180;
                             squatsEx.maxAngle = 0;
                             squatsEx.minHipAngle = 180;
@@ -518,12 +570,14 @@
                     }
                     else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction from up to down
                     {
-                        if (theAngle < 100) {
+                        if (theAngle < 100 && !isStarted) {
                             squatsEx = null;
+                            resetRecordings();
                             console.log("notice: theAngle < 100");
                         }
-                        else if (squatsEx.angle - theAngle > 20) {
+                        else if (squatsEx.angle - theAngle > 20 && !isStarted) {
                             squatsEx = null;
+                            resetRecordings();
                             console.log("notice: squatsEx.angle - theAngle > 20");
                         }
                         // else if (squatsEx.minAngle - squatsEx.minAngle < 110) 
@@ -535,47 +589,71 @@
                             squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
 
                             if (squatsEx.maxAngle > 176.0) {
-                                let notice = voiceInstructions[8];
-                                playVoice(notice);
-                                console.log(notice + ":" + squatsEx.maxAngle);
+                                //squatsEx.instructions[8] = voiceInstructions[8];
+                                squatsEx.incorrectInstructions[4] = incorrectVoiceInstructions[4];
+                                console.log(squatsEx.incorrectInstructions[4]);
+                                // let notice = voiceInstructions[8];
+                                // playVoice(notice);
+                                //console.log(notice + ":" + squatsEx.maxAngle);
                             }
                             else if (Math.round(squatsEx.maxAngle + 0.5) < 170.0 && squatsEx.maxAngle > 160.0) {
-                                let notice = voiceInstructions[9];
-                                playVoice(notice);
-                                console.log(notice + ":" + squatsEx.maxAngle);
+                                //squatsEx.instructions[9] = voiceInstructions[9];
+                                squatsEx.incorrectInstructions[5] = incorrectVoiceInstructions[5];
+                                console.log(squatsEx.incorrectInstructions[5]);
+                                // let notice = voiceInstructions[9];
+                                // playVoice(notice);
+                                //console.log(notice + ":" + squatsEx.maxAngle);
                             }
                             else if (squatsEx.startTime > 0 && squatsEx.counter > 0) {
                                 const period = Date.now() - squatsEx.startTime;
                                 if (period > 2000 && period < 3000) {
-                                    let notice = voiceInstructions[10];
-                                    playVoice(notice);
-                                    console.log(notice + `: ${squatsEx.maxAngle}, period: ${period}`);
+                                    //squatsEx.instructions[10] = voiceInstructions[10];
+                                    squatsEx.incorrectInstructions[6] = incorrectVoiceInstructions[6];
+                                    console.log(squatsEx.incorrectInstructions[6]);
+
+                                    // let notice = voiceInstructions[10];
+                                    // playVoice(notice);
+                                    // console.log(notice + `: ${squatsEx.maxAngle}, period: ${period}`);
                                 }
                                 else if (period > 15000) {
-                                    let notice = voiceInstructions[11];
-                                    playVoice(notice);
-                                    console.log(notice + `: ${squatsEx.angle}, period: ${period}`);
+                                    //squatsEx.instructions[11] = voiceInstructions[11];
+                                    squatsEx.incorrectInstructions[7] = incorrectVoiceInstructions[7];
+                                    console.log(squatsEx.incorrectInstructions[7]);
+                                    // let notice = voiceInstructions[11];
+                                    // playVoice(notice);
+                                    // console.log(notice + `: ${squatsEx.angle}, period: ${period}`);
                                 }
                             }
                             else if (squatsEx.minHipAngle < 45) {
-                                let notice = voiceInstructions[12];
-                                playVoice(notice);
-                                console.log(notice + `: ${squatsEx.minHipAngle}`);
+                                //squatsEx.instructions[12] = voiceInstructions[12];
+                                squatsEx.incorrectInstructions[8] = incorrectVoiceInstructions[8];
+                                console.log(squatsEx.incorrectInstructions[8]);
+                                // let notice = voiceInstructions[12];
+                                // playVoice(notice);
+                                // console.log(notice + `: ${squatsEx.minHipAngle}`);
                             }
                             else if (squatsEx.maxAngle - squatsEx.minAngle > 110) {
-                                let notice = voiceInstructions[13];
-                                playVoice(notice);
-                                console.log(notice + `: ${squatsEx.minHipAngle}`);
+                                //squatsEx.instructions[13] = voiceInstructions[13];
+                                squatsEx.incorrectInstructions[1] = correctVoiceInstructions[1];
+                                console.log(squatsEx.correctInstructions[1]);
+                                // let notice = voiceInstructions[13];
+                                // playVoice(notice);
+                                // console.log(notice + `: ${squatsEx.minHipAngle}`);
                             }
                             else if (squatsEx.minAngle < 55.0) {
-                                let notice = voiceInstructions[14];
-                                playVoice(notice);
-                                console.log(notice + `: ${squatsEx.minHipAngle}`);
+                                //squatsEx.instructions[14] = voiceInstructions[14];
+                                squatsEx.incorrectInstructions[2] = correctVoiceInstructions[2];
+                                console.log(squatsEx.correctInstructions[2]);
+                                // let notice = voiceInstructions[14];
+                                // playVoice(notice);
+                                // console.log(notice + `: ${squatsEx.minHipAngle}`);
                             }
                             else {
-                                let notice = voiceInstructions[0];
-                                playVoice(notice);
-                                console.log(notice + `: ${squatsEx.minHipAngle}`);
+                                //squatsEx.instructions[0] = voiceInstructions[0];
+                                squatsEx.incorrectInstructions[0] = correctVoiceInstructions[0];
+                                // let notice = voiceInstructions[0];
+                                // playVoice(notice);
+                                // console.log(notice + `: ${squatsEx.minHipAngle}`);
                             }
 
                             squatsEx.minAngle = 180;
@@ -605,58 +683,113 @@
             }
         };
 
-        const fileVideoElement = document.createElement('video');
-        fileVideoElement.style.display = 'none';
-        fileVideoElement.controls = true;
+        let recorder = null;
+        let blobArray = null;
+        let isRecording = false;
+        const VIDEO_RECORDING_TIME_SLICE = 35000;//10 * 60 * 1000;
+
+        function onGotRecordingStream(videoStream) {
+            fileVideoElement.onplay = null;
+            fileVideoElement.onpause = null;
+            recorder = new MediaRecorder(videoStream);
+            recorder.ondataavailable = onRecordingDataAvailable;
+            recorder.stream = videoStream;
+
+            blobArray = { size: 0, blobs: [] };
+            isRecording = true;
+            recorder.start(VIDEO_RECORDING_TIME_SLICE);
+        }
+
+        function onRecordingDataAvailable(event) {
+            if (event) {
+                let blob = null;
+                if (event.data && event.data.size > 0) {
+                    blob = event.data;
+                }
+                else {
+                    return;
+                }
+                if (!blobArray) {
+                    blobArray = { size: 0, blobs: [] };
+                }
+                blobArray.size += blob.size;
+                blobArray.blobs.push(blob);
+            }
+
+            if (!isRecording) {
+                saveRecording();
+
+                if (recorder && recorder.stream && !isRecording) {
+                    recorder.ondataavailable = null;
+                    recorder.stop();
+                    recorder.stream = null;
+                    recorder = null;
+                }
+            }
+        }
+
+        function resetRecordings() {
+            blobArray = null;
+        }
+
+        function saveRecording() {
+            if (blobArray && blobArray.size > 0 && squatsEx && squatsEx.counter > 0) {
+                let seekableBlob = new Blob(blobArray.blobs, { type: "video/webm" });
+                var url = URL.createObjectURL(seekableBlob);
+                fileVideoElement.src = url;
+            }
+            else
+            {
+                resetRecordings();
+            }
+
+            //let file = new File(blobsTosave, fileName, { type: "video/webm" });            
+        }
+
+
+        const fileVideoElement = document.getElementById("recordedVideo");
+        // fileVideoElement.style.display = 'block';
+        // fileVideoElement.controls = true;
         fileVideoElement.volume = 0;
 
-        document.body.appendChild(fileVideoElement);
-        fileVideoElement.onplay = () => {
+        //document.body.appendChild(fileVideoElement);
+        function fileVideoElementOnPlay() {
             processVideoFrame();
             console.log("Voice command: GO");
             startExerciseAssistance();
             //recognition.start();
-        };
-        fileVideoElement.onpause = () => {
+        }
+
+        function fileVideoElementOnPause() {
             //recognition.stop();
             console.log("Voice command: STOP");
             stopExerciseAssistance();
-        };
+            compileAndPlayInstructions();
+        }
 
         uploadVideo.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
                 const url = URL.createObjectURL(file);
                 fileVideoElement.src = url;
-
-                //fileVideoElement.loop = true;
-
-                //fileVideoElement.play();
-
-                // Process video frames from the uploaded file
-                // const processVideoFrame = async () => {
-                //     if (!fileVideoElement.paused && !fileVideoElement.ended) {
-                //         await pose.send({ image: fileVideoElement });
-                //         requestAnimationFrame(processVideoFrame);
-                //     }
-                // };
-
-                // fileVideoElement.onplay = () => {
-                //     processVideoFrame();
-                //     console.log("Voice command: GO");
-                //     startExerciseAssistance();
-                //     //recognition.start();
-                // };
-                // fileVideoElement.onpause = () => {
-                //     //recognition.stop();
-                //     console.log("Voice command: STOP");
-                //     stopExerciseAssistance();
-                // };
-
+                fileVideoElement.onplay = fileVideoElementOnPlay;
+                fileVideoElement.onpause = fileVideoElementOnPause;
             }
+
         });
 
+        function playVoice(text) {
+            //return;
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.rate = 0.7
+            //msg.lang = "en-US";
+            window.speechSynthesis.speak(msg);
+        }
+
+
     </script>
+
+
 </body>
 
 </html>
