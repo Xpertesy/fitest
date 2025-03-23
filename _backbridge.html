@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitPro</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100vh;
+            background-color: #f4f4f9;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            margin: 20px 0;
+            font-size: 2rem;
+            color: #333;
+        }
+
+        h2 {
+            margin: 20px 0;
+            font-size: 1.7rem;
+            color: #333;
+        }
+
+        #exerciseList {
+            width: 80%;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            color: #333;
+            text-align: left;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        canvas {
+            display: block;
+            border: 2px solid #333;
+            border-radius: 8px;
+            margin: 10px;
+            max-width: 90%;
+            height: auto;
+        }
+
+        video {
+            background-color: #222;
+            border: 2px solid #333;
+            border-radius: 8px;
+            margin: 10px;
+        }
+
+        button,
+        input {
+            width: 80%;
+            padding: 15px;
+            font-size: 1rem;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        button:hover,
+        input:hover {
+            background-color: #0056b3;
+        }
+
+        button:active,
+        input:active {
+            background-color: #003f7f;
+        }
+
+        #anglesDisplay {
+            width: 80%;
+            margin-bottom: 20px;
+            font-size: 1rem;
+            color: #333;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        @media (min-width: 800px) {
+            .container {
+                flex-direction: row;
+            }
+        }
+
+        @media (max-width: 799px) {
+            .container {
+                flex-direction: column;
+            }
+
+            canvas,
+            video {
+                max-width: 90%;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+    <script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
+</head>
+
+<body>
+    <a href="index.html" class="back-button">Home</a>
+
+    <h1>Back Bridge</h1>
+
+    <canvas id="defaultCanvas0" width="640" height="360"></canvas>
+    <div id="anglesDisplay">Angles will appear here...</div>
+    <button id="startStopButton">Start/Stop</button>
+    <input type="file" id="uploadVideo" accept="video/*">
+
+    <script>
+        const canvas = document.getElementById("defaultCanvas0");
+        const button = document.getElementById('startStopButton');
+        const anglesDisplay = document.getElementById('anglesDisplay');
+        const context = canvas.getContext('2d');
+        const exerciseSelector = document.getElementById('exerciseSelector');
+        let exerciseCounting = null;
+        let exerciseAssistance = noEx;
+
+        let bodyPose = ml5.bodyPose("BlazePose");
+
+        const connections = bodyPose.getSkeleton();
+        let poses = [];
+
+        function playVoice(text) {
+            //return;
+            const msg = new SpeechSynthesisUtterance(text);
+            window.speechSynthesis.speak(msg);
+        }
+
+        // Set canvas size dynamically
+        const setCanvasSize = () => {
+            canvas.width = window.innerWidth * 0.8;
+            canvas.height = canvas.width * 0.6; // Adjust height proportionally if needed
+        };
+
+        // Initialize canvas size on load and resize
+        setCanvasSize();
+        window.addEventListener('resize', setCanvasSize);
+
+        // Video capturing setup
+        const videoElement = document.createElement('video');
+        videoElement.autoplay = true;
+        videoElement.style.display = 'none';
+        document.body.appendChild(videoElement);
+
+        // Define BlazePose connections excluding face landmarks
+        const blazePoseConnections = [
+            [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+            [11, 23], [12, 24], [23, 25], [24, 26], [25, 27],
+            [26, 28], [27, 29], [28, 30]
+        ];
+
+        // Calculate angle between three points
+        const calculateAngle = (a, b, c) => {
+            const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+            let angle = Math.abs(radians * (180 / Math.PI));
+            if (angle > 180) angle = 360 - angle;
+            return angle;
+        };
+
+
+        const angles = {};
+        // Update angles display
+        const updateAnglesDisplay = (landmarks) => {
+            // Right side angles
+            angles.rightElbow = calculateAngle(landmarks.right_shoulder, landmarks.right_elbow, landmarks.right_wrist);
+            angles.rightShoulder = calculateAngle(landmarks.right_hip, landmarks.right_shoulder, landmarks.right_elbow);
+            angles.rightHip = calculateAngle(landmarks.right_knee, landmarks.right_hip, landmarks.right_shoulder);
+            angles.rightKnee = calculateAngle(landmarks.right_ankle, landmarks.right_knee, landmarks.right_hip);
+
+            // Left side angles
+            angles.rightElbow = calculateAngle(landmarks.left_shoulder, landmarks.left_elbow, landmarks.left_wrist);
+            angles.leftShoulder = calculateAngle(landmarks.left_hip, landmarks.left_shoulder, landmarks.left_elbow);
+            angles.leftHip = calculateAngle(landmarks.left_knee, landmarks.left_hip, landmarks.left_shoulder);
+            angles.leftKnee = calculateAngle(landmarks.left_ankle, landmarks.left_knee, landmarks.left_hip);
+
+            anglesDisplay.textContent = `
+                Right Hip: ${angles.rightHip.toFixed(1)}°, 
+                Right Knee: ${angles.rightKnee.toFixed(1)}°, 
+            `;
+
+            exerciseAssistance(angles);
+        };
+
+        // Start/Stop button functionality
+        let isRunning = false;
+        button.addEventListener('click', () => {
+            isRunning = !isRunning;
+            button.textContent = isRunning ? 'Stop' : 'Start';
+            if (isRunning) {
+                camera.start();
+                //recognition.start();
+                startExerciseAssistance();
+                console.log('Pose detection started');
+            } else {
+                camera.stop();
+                //recognition.stop();
+                stopExerciseAssistance();
+                console.log('Pose detection stopped');
+            }
+        });
+
+        function startExerciseAssistance() {
+            squatsEx = null;
+            exerciseAssistance = squatsAssistance;
+        }
+
+        function stopExerciseAssistance() {
+            exerciseAssistance = noEx;
+            //squatsEx = null;
+        }
+
+
+        function noEx(angles) { }
+
+        let squatsEx = null;
+        const EXCERCISE_DIRECTION_UP = -1;
+        const EXCERCISE_DIRECTION_DOWN = 1;
+        const EXCERCISE_DIRECTION_NONE = 0;
+
+
+        function squatsAssistance(angles) {
+            // const theAngle = Math.floor(parseFloat(angles.rightKnee.toFixed(1)));
+            const theAngle = Math.floor(parseFloat(angles.rightHip.toFixed(1)));
+            if (theAngle < 0) {
+                return;
+            }
+            if (!squatsEx) {
+                squatsEx = {
+                    counter: 0,
+                    angle: theAngle,
+                    minAngle: theAngle,
+                    maxAngle: theAngle,
+                    minHipAngle: theHipAngle,
+                    maxHipAngle: theHipAngle,
+                    startTime: Date.now(),
+                    dirCount: 0,
+                    test: 0,
+                    direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
+                }
+            }
+            squatsEx.maxAngle = Math.max(squatsEx.maxAngle, theAngle);
+            squatsEx.minAngle = Math.min(squatsEx.minAngle, theAngle);
+            squatsEx.maxHipAngle = Math.max(squatsEx.maxHipAngle, theHipAngle);
+            squatsEx.minHipAngle = Math.min(squatsEx.minHipAngle, theHipAngle);
+
+            let direction = squatsEx.direction == 0 ? 'none' : (squatsEx.direction > 0 ? 'down' : 'up');
+            console.log(`theAngle: ${theAngle}, direction: ${direction}, angle: ${squatsEx.angle}, minAngle: ${squatsEx.minAngle}, maxAngle: ${squatsEx.maxAngle}, dirCount: ${squatsEx.dirCount}, counter: ${squatsEx.counter}, startTime: ${squatsEx.startTime}`);
+            if (squatsEx.angle < theAngle) //up
+            {
+                squatsEx.angle = theAngle;
+                //squatsEx.minAngle = Math.min(squatsEx.minAngle, theAngle);
+                squatsEx.dirCount--;
+                //console.log(`theAngle: ${theAngle}, squatsEx.dirCount: ${squatsEx.dirCount}`);
+
+                if (squatsEx.dirCount < -5) {
+                    squatsEx.dirCount = 0;
+
+                    if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
+                        squatsEx.direction = EXCERCISE_DIRECTION_UP;
+                    }
+                    else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction
+                        if (squatsEx.minAngle > 95.0) {
+                            squatsEx = null;
+                        }
+                        else {
+                            squatsEx.direction = EXCERCISE_DIRECTION_UP;
+                            squatsEx.counter++;
+                            if (squatsEx.minAngle > 50.0) {
+                                let notice = 'Squat lower.';
+                                playVoice(notice);
+                                console.log(notice + ":" + squatsEx.minAngle);
+                            }
+                            else if (squatsEx.minAngle < 45.0) {
+                                let notice = "Don't stoop too low, take care of your knees.";
+                                playVoice(notice);
+                                console.log(notice + ":" + squatsEx.minAngle);
+                            }
+                            else {
+                                let notice = "" + (squatsEx.counter);
+                                playVoice(notice);
+                                console.log(notice + ":" + squatsEx.angle);
+                            }
+                            squatsEx.minAngle = 180;
+                            squatsEx.maxAngle = 0;
+                            squatsEx.minHipAngle = 180;
+                            squatsEx.maxHipAngle = 0;
+                            // if (squatsEx.counter > 30) {
+                            //     stopExerciseAssistance();
+                            // }
+                        }
+                    }
+                }
+            }
+            else if (squatsEx.angle > theAngle) //down
+            {
+                //squatsEx.maxAngle = Math.max(squatsEx.maxAngle, theAngle);
+                squatsEx.angle = theAngle;
+                squatsEx.dirCount++;
+                //console.log(`theAngle: ${theAngle}, squatsEx.dirCount: ${squatsEx.dirCount}`);
+
+                if (squatsEx.dirCount > 5) {
+                    squatsEx.dirCount = 0;
+
+                    if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
+                        squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+                        squatsEx.startTime = Date.now();
+                    }
+                    else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction
+                    {
+                        if (theAngle < 100 || squatsEx.angle - theAngle > 20) {
+                            squatsEx = null;
+                        }
+                        else {
+                            squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+
+                            if (squatsEx.maxAngle > 176.0) {
+                                let notice = 'Do not straighten your legs completely.';
+                                playVoice(notice);
+                                console.log(notice + ":" + squatsEx.maxAngle);
+                            }
+                            else if (Math.round(squatsEx.maxAngle + 0.5) < 170.0 && squatsEx.maxAngle > 160.0) {
+                                let notice = 'Not high enough, go higher.';
+                                playVoice(notice);
+                                console.log(notice + ":" + squatsEx.maxAngle);
+                            }
+                            else if (squatsEx.startTime > 0 && squatsEx.counter > 0) {
+                                const period = Date.now() - squatsEx.startTime;
+                                if (period > 2000 && period < 3000) {
+                                    let notice = "Don't rush, do it slower.";
+                                    playVoice(notice);
+                                    console.log(notice + `: ${squatsEx.maxAngle}, period: ${period}`);
+                                }
+                                else if (period > 15000) {
+                                    let notice = "Faster!";
+                                    playVoice(notice);
+                                    console.log(notice + `: ${squatsEx.angle}, period: ${period}`);
+                                }
+                            }
+                            if (squatsEx.minHipAngle < 45) {
+                                let notice = "Don't fall forward too much!";
+                                playVoice(notice);
+                                console.log(notice + `: ${squatsEx.minHipAngle}`);
+                            }
+                            squatsEx.minAngle = 180;
+                            squatsEx.maxAngle = 0;
+                            squatsEx.minHipAngle = 180;
+                            squatsEx.maxHipAngle = 0;
+                            squatsEx.startTime = Date.now();
+                            //console.log(`squatsEx.startTime: ${squatsEx.startTime}`);
+                        }
+                    }
+                }
+            }
+
+            try {
+                if (squatsEx) {
+                    squatsEx.angle = theAngle;
+                }
+            } catch (error) {
+                console.error(error);
+            }
+
+        }
+        const processVideoFrame = async () => {
+            if (!fileVideoElement.paused && !fileVideoElement.ended) {
+                //await pose.send({ image: fileVideoElement });
+                canvas.width = window.innerWidth * 0.9;
+                canvas.height = canvas.width * fileVideoElement.videoHeight / fileVideoElement.videoWidth;
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.drawImage(fileVideoElement, 0, 0, canvas.width, canvas.height);
+                bodyPose.detect(canvas, onBodyPoseResult);
+                fileVideoElement.requestVideoFrameCallback(processVideoFrame);
+            }
+        };
+
+        const fileVideoElement = document.createElement('video');
+        fileVideoElement.style.display = 'block';
+        fileVideoElement.controls = true;
+        fileVideoElement.volume = 0;
+
+        document.body.appendChild(fileVideoElement);
+        fileVideoElement.onplay = () => {
+            processVideoFrame();
+            console.log("Voice command: GO");
+        };
+        fileVideoElement.onpause = () => {
+            console.log("Voice command: STOP");
+            bodyPose.detectStop();
+        };
+
+        function _draw() {
+            context.strokeStyle = "blue";
+            context.lineWidth = 3;
+
+            // Draw the skeleton connections
+            for (let i = 0; i < poses.length; i++) {
+                let pose = poses[i];
+                for (let j = 0; j < connections.length; j++) {
+                    let pointAIndex = connections[j][0];
+                    let pointBIndex = connections[j][1];
+                    let pointA = pose.keypoints[pointAIndex];
+                    let pointB = pose.keypoints[pointBIndex];
+                    context.beginPath();
+                    context.moveTo(pointA.x, pointA.y);
+                    context.lineTo(pointB.x, pointB.y);
+                    context.stroke();
+                }
+            }
+
+            // Draw all the tracked landmark points
+            for (let i = 0; i < poses.length; i++) {
+                let pose = poses[i];
+                for (let j = 0; j < pose.keypoints.length; j++) {
+                    let keypoint = pose.keypoints[j];
+                    // Only draw a circle if the keypoint's confidence is bigger than 0.1
+                    context.beginPath();
+                    context.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
+                    context.fillStyle = "red";
+                    context.fill();
+                }
+            }
+        }
+
+        onBodyPoseResult = (result) => {
+            poses = result;
+            _draw();
+            updateAnglesDisplay(poses[0]);
+        }
+
+        uploadVideo.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                fileVideoElement.src = url;
+            }
+        });
+
+    </script>
+</body>
+
+</html>

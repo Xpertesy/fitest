@@ -100,6 +100,7 @@
             padding: 10px;
             text-align: center;
         }
+
         .back-button {
             position: absolute;
             top: 10px;
@@ -143,8 +144,8 @@
 
     <canvas id="fitnessCanvas" width="640" height="360"></canvas>
     <div id="anglesDisplay">Angles will appear here...</div>
-    <button id="startStopButton">Start/Stop</button>
-    <input type="file" id="uploadVideo" accept="video/*">
+    <button id="startStopButton">Start</button>
+    <!-- <input type="file" id="uploadVideo" accept="video/*"> -->
 
     <script>
         const canvas = document.getElementById('fitnessCanvas');
@@ -155,13 +156,7 @@
         let exerciseCounting = null;
         let exerciseAssistance = noEx;
 
-        function playVoice(text) {
-            //return;
-            const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = "ru-RU";
-            window.speechSynthesis.speak(msg);
-        }
-
+        
         // Set canvas size dynamically
         const setCanvasSize = () => {
             canvas.width = window.innerWidth * 0.8;
@@ -371,33 +366,50 @@
         const EXCERCISE_DIRECTION_DOWN = 1;
         const EXCERCISE_DIRECTION_NONE = 0;
 
-        const minAngle = 90;
-        const downAmplitude = 20;
+        const minAngle = 45;
+        const downAmplitude = 30;
         const maxAngle = 180;
-        const upAmplitude = 20;
+        const upAmplitude = 30;
         const directionCounter = 5;
         const invalidRange = [75, 150];
+        // const voiceInstructions = [
+        //     'Молодец, спина прямая!', //0
+        //     'Хорошо держишь колени в стороны!', //1
+        //     'Не забывай дышать!',  //2
+        //     'Садись глубже!',  //3
+        //     'Не садись слишком низко, береги колени!', //4
+        //     'Выпрями спину и поясницу!',  //5
+        //     'Таз отводи дальше назад!',  //6
+        //     'Пятками дави в пол!', //7
+        //     'Колени направь в стороны!',   //8
+        //     'Не округляй спину! Шею держи прямо!',   //9
+        //     'Вдох через нос и медленно садись вниз',   //10
+        //     'Выдыхай, когда встаёшь!',   //11
+        //     'Дави пятками в пол, когда встаёшь!',   //11
+        //     'Отличная амплитуда!',   //12
+        //     'Садишься низко, молодец!'   //13
+        // ];
+
         const voiceInstructions = [
-            'Молодец, спина прямая!', //0
-            'Хорошо держишь колени в стороны!', //1
-            'Не забывай дышать!',  //2
-            'Садись глубже!',  //3
-            'Не садись слишком низко, береги колени!', //4
-            'Выпрями спину и поясницу!',  //5
-            'Таз отводи дальше назад!',  //6
-            'Пятками дави в пол!', //7
-            'Колени направь в стороны!',   //8
-            'Не округляй спину! Шею держи прямо!',   //9
-            'Вдох через нос и медленно садись вниз',   //10
-            'Выдыхай, когда встаёшь!',   //11
-            'Дави пятками в пол, когда встаёшь!',   //11
-            'Отличная амплитуда!',   //12
-            'Садишься низко, молодец!'   //13
+            "Good job, keep your back straight!", //0
+            "You're keeping your knees out to the sides well!", //1
+            "Don't forget to breathe!", //2
+            "Sit deeper!", //3
+            "Don't sit too low, watch your knees!", //4
+            "Straighten your back and lower back!", //5
+            "Move your pelvis further back!", //6
+            "Press your heels into the floor!", //7
+            "Knees out to the sides!", //8
+            "Don't round your back! Keep your neck straight!", //9
+            "Breathe in through your nose and slowly sit down", //10
+            "Exhale as you stand up!", //11
+            "Push your heels into the floor as you stand up!", //11
+            "Great range of motion!", //12
+            "You're sitting low, well done!" //13
         ];
 
-
         function squatsAssistance(angles) {
-            const theAngle = Math.floor(parseFloat(angles.leftHip.toFixed(1)));//Math.floor(parseFloat(angles.rightKnee.toFixed(1)));
+            const theAngle = Math.floor(parseFloat(angles.rightKnee.toFixed(1)));
             const theHipAngle = Math.floor(parseFloat(angles.rightHip.toFixed(1)));
 
             // const theAngle = Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
@@ -441,8 +453,8 @@
                         squatsEx.direction = EXCERCISE_DIRECTION_UP;
                     }
                     else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction from down to up
-                        if (squatsEx.minAngle > 165.0) {
-                            console.log("notice: squatsEx.minAngle > 120.0");
+                        if (squatsEx.minAngle > 95.0) {
+                            console.log("notice: squatsEx.minAngle > 95.0");
                             squatsEx = null;
                         }
                         else {
@@ -458,20 +470,17 @@
                                 playVoice(notice);
                                 console.log(notice + ":" + squatsEx.minAngle);
                             }
-                            else if (squatsEx.minHipAngle < 45.0)
-                            {
+                            else if (squatsEx.minHipAngle < 45.0) {
                                 let notice = voiceInstructions[5];
                                 playVoice(notice);
                                 console.log(notice + ":" + squatsEx.minHipAngle);
                             }
-                            else if (squatsEx.minHipAngle > 75.0)
-                            {
+                            else if (squatsEx.minHipAngle > 75.0) {
                                 let notice = voiceInstructions[6];
                                 playVoice(notice);
                                 console.log(notice + ":" + squatsEx.minHipAngle);
                             }
-                            else 
-                            {
+                            else {
                                 let notice = voiceInstructions[7];
                                 playVoice(notice);
                                 console.log(notice + ":" + squatsEx.angle);
@@ -503,7 +512,7 @@
                     }
                     else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction from up to down
                     {
-                        if (theAngle < 100 ) {
+                        if (theAngle < 100) {
                             squatsEx = null;
                             console.log("notice: theAngle < 100");
                         }
@@ -547,20 +556,17 @@
                                 playVoice(notice);
                                 console.log(notice + `: ${squatsEx.minHipAngle}`);
                             }
-                            else if(squatsEx.maxAngle - squatsEx.minAngle > 110)
-                            {
+                            else if (squatsEx.maxAngle - squatsEx.minAngle > 110) {
                                 let notice = voiceInstructions[13];
                                 playVoice(notice);
                                 console.log(notice + `: ${squatsEx.minHipAngle}`);
                             }
-                            else if(squatsEx.minAngle < 55.0)
-                            {
+                            else if (squatsEx.minAngle < 55.0) {
                                 let notice = voiceInstructions[14];
                                 playVoice(notice);
                                 console.log(notice + `: ${squatsEx.minHipAngle}`);
                             }
-                            else
-                            {                                                                
+                            else {
                                 let notice = voiceInstructions[0];
                                 playVoice(notice);
                                 console.log(notice + `: ${squatsEx.minHipAngle}`);
@@ -594,7 +600,7 @@
         };
 
         const fileVideoElement = document.createElement('video');
-        fileVideoElement.style.display = 'block';
+        fileVideoElement.style.display = 'none';
         fileVideoElement.controls = true;
         fileVideoElement.volume = 0;
 
@@ -643,6 +649,13 @@
 
             }
         });
+        function playVoice(text) {
+            //return;
+            const msg = new SpeechSynthesisUtterance(text);
+            //msg.lang = "en-US";
+            window.speechSynthesis.speak(msg);
+        }
+
 
     </script>
 </body>
