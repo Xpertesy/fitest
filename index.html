@@ -35,7 +35,7 @@
         }
 
         .exercise {
-            
+
             background: white;
             padding: 10px;
             border-radius: 10px;
@@ -57,6 +57,8 @@
             font-weight: bold;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+    <script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
 </head>
 
 <body>
@@ -64,7 +66,7 @@
     <div class="exercise-container">
         <div class="exercise-wrapper">
             <div class="exercise">
-                <a href="exe.html?type=squats">
+                <a href="exe.html?type=squats&side=1">
                     <img src="squats.jpg" alt="Squats">
                     <p>Squats</p>
                 </a>
@@ -72,23 +74,23 @@
         </div>
         <div class="exercise-wrapper">
             <div class="exercise">
-                <a href="exe.html?type=legspush">
+                <a href="exe.html?type=legspush&side=0">
                     <img src="legspush.jpg" alt="Legs push">
                     <p>Legs Push</p>
                 </a>
             </div>
         </div>
-        <!-- <div class="exercise-wrapper">
+        <div class="exercise-wrapper">
             <div class="exercise">
-                <a href="backbridge.html">
+                <a href="exe.html?type=backbridge&side=0">
                     <img src="backbridge.jpg" alt="Back Bridge">
                     <p>Back Bridge</p>
                 </a>
             </div>
-        </div> -->
+        </div>
         <div class="exercise-wrapper">
             <div class="exercise">
-                <a href="exe.html?type=pullhorisontal">
+                <a href="exe.html?type=pullhorisontal&side=0">
                     <img src="pullhorisontal.jpg" alt="Horisontal Pull">
                     <p>Horisontal Pull</p>
                 </a>
@@ -96,7 +98,7 @@
         </div>
         <div class="exercise-wrapper">
             <div class="exercise">
-                <a href="exe.html?type=pulltop">
+                <a href="exe.html?type=pulltop&side=2">
                     <img src="pulltop.jpg" alt="Pull Top">
                     <p>Pull Top</p>
                 </a>

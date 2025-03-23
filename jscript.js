@@ -22,6 +22,14 @@ const exerciseSelector = document.getElementById('exerciseSelector');
 const title = document.getElementById('maintitle');
 let exerciseCounting = null;
 let exerciseAssistance = noEx;
+const CAMERA_VIEW_SIDE = params['side'];
+const CAMERA_VIEW_SIDE_LEFT = 0;
+const CAMERA_VIEW_SIDE_RIGHT = 1;
+
+let bodyPose = ml5.bodyPose();
+
+const connections = bodyPose.getSkeleton();
+let poses = [];
 
 
 // Set canvas size dynamically
@@ -42,50 +50,50 @@ const blazePoseConnections = [
 ];
 
 // Mediapipe Pose setup
-const pose = new Pose({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-});
-pose.setOptions({
-    modelComplexity: 1,
-    smoothLandmarks: true,
-    enableSegmentation: false,
-    smoothSegmentation: true,
-    minDetectionConfidence: 0.9,
-    minTrackingConfidence: 0.5
-});
-pose.onResults((results) => {
-    canvas.width = window.innerWidth * 0.9;
-    canvas.height = canvas.width * results.image.height / results.image.width;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    //drawMirroredImage(results.image);
-    context.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+// const pose = new Pose({
+//     locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+// });
+// pose.setOptions({
+//     modelComplexity: 1,
+//     smoothLandmarks: true,
+//     enableSegmentation: false,
+//     smoothSegmentation: true,
+//     minDetectionConfidence: 0.9,
+//     minTrackingConfidence: 0.5
+// });
+// pose.onResults((results) => {
+//     canvas.width = window.innerWidth * 0.9;
+//     canvas.height = canvas.width * results.image.height / results.image.width;
+//     context.clearRect(0, 0, canvas.width, canvas.height);
+//     //drawMirroredImage(results.image);
+//     context.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
-    if (results.poseLandmarks) {
-        // Draw skeleton
-        drawSkeleton(results.poseLandmarks);
+//     if (results.poseLandmarks) {
+//         // Draw skeleton
+//         drawSkeleton(results.poseLandmarks);
 
-        // Draw keypoints
-        results.poseLandmarks.forEach((landmark, index) => {
-            if (index >= 11 && index <= 32 && landmark.visibility > 0.5) { // Ignore face landmarks
-                context.beginPath();
-                context.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
-                context.fillStyle = "red";
-                context.fill();
-            }
-        });
+//         // Draw keypoints
+//         results.poseLandmarks.forEach((landmark, index) => {
+//             if (index >= 11 && index <= 32 && landmark.visibility > 0.5) { // Ignore face landmarks
+//                 context.beginPath();
+//                 context.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
+//                 context.fillStyle = "red";
+//                 context.fill();
+//             }
+//         });
 
-        // Update angles
-        updateAnglesDisplay(results.poseLandmarks);
-    }
-});
-// Start Mediapipe Camera
-const camera = new Camera(videoElement, {
-    onFrame: async () => {
-        await pose.send({ image: videoElement });
-    },
-    //width: 1280,
-    //height: 720
-});
+//         // Update angles
+//         updateAnglesDisplay(results.poseLandmarks);
+//     }
+// });
+// // Start Mediapipe Camera
+// const camera = new Camera(videoElement, {
+//     onFrame: async () => {
+//         await pose.send({ image: videoElement });
+//     },
+//     //width: 1280,
+//     //height: 720
+// });
 
 // Calculate angle between three points
 const calculateAngle = (a, b, c) => {
@@ -96,41 +104,41 @@ const calculateAngle = (a, b, c) => {
 };
 
 // Draw connections between keypoints
-const drawSkeleton = (landmarks) => {
-    context.strokeStyle = "blue";
-    context.lineWidth = 3;
+// const drawSkeleton = (landmarks) => {
+//     context.strokeStyle = "blue";
+//     context.lineWidth = 3;
 
-    blazePoseConnections.forEach(([start, end]) => {
-        const startPoint = landmarks[start];
-        const endPoint = landmarks[end];
+//     blazePoseConnections.forEach(([start, end]) => {
+//         const startPoint = landmarks[start];
+//         const endPoint = landmarks[end];
 
-        if (startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
-            context.beginPath();
-            context.moveTo(startPoint.x * canvas.width, startPoint.y * canvas.height);
-            context.lineTo(endPoint.x * canvas.width, endPoint.y * canvas.height);
-            context.stroke();
-        }
-    });
-};
+//         if (startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
+//             context.beginPath();
+//             context.moveTo(startPoint.x * canvas.width, startPoint.y * canvas.height);
+//             context.lineTo(endPoint.x * canvas.width, endPoint.y * canvas.height);
+//             context.stroke();
+//         }
+//     });
+// };
 const angles = {};
 // Update angles display
 const updateAnglesDisplay = (landmarks) => {
     // Right side angles
-    angles.rightElbow = calculateAngle(landmarks[11], landmarks[13], landmarks[15]);
-    angles.rightShoulder = calculateAngle(landmarks[13], landmarks[11], landmarks[23]);
-    angles.rightHip = calculateAngle(landmarks[11], landmarks[23], landmarks[25]);
-    angles.rightKnee = calculateAngle(landmarks[23], landmarks[25], landmarks[27]);
+    angles.rightElbow = calculateAngle(landmarks.right_shoulder, landmarks.right_elbow, landmarks.right_wrist);
+    angles.rightShoulder = calculateAngle(landmarks.right_hip, landmarks.right_shoulder, landmarks.right_elbow);
+    angles.rightHip = calculateAngle(landmarks.right_knee, landmarks.right_hip, landmarks.right_shoulder);
+    angles.rightKnee = calculateAngle(landmarks.right_ankle, landmarks.right_knee, landmarks.right_hip);
 
     // Left side angles
-    angles.leftElbow = calculateAngle(landmarks[12], landmarks[14], landmarks[16]);
-    angles.leftShoulder = calculateAngle(landmarks[14], landmarks[12], landmarks[24]);
-    angles.leftHip = calculateAngle(landmarks[12], landmarks[24], landmarks[26]);
-    angles.leftKnee = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
+    angles.rightElbow = calculateAngle(landmarks.left_shoulder, landmarks.left_elbow, landmarks.left_wrist);
+    angles.leftShoulder = calculateAngle(landmarks.left_hip, landmarks.left_shoulder, landmarks.left_elbow);
+    angles.leftHip = calculateAngle(landmarks.left_knee, landmarks.left_hip, landmarks.left_shoulder);
+    angles.leftKnee = calculateAngle(landmarks.left_ankle, landmarks.left_knee, landmarks.left_hip);
 
     anglesDisplay.textContent = `
-                Right Hip: ${angles.rightHip.toFixed(1)}°, 
-                Right Knee: ${angles.rightKnee.toFixed(1)}°, 
-            `;
+        Right Hip: ${angles.rightHip.toFixed(1)}°, 
+        Right Knee: ${angles.rightKnee.toFixed(1)}°, 
+    `;
 
     exerciseAssistance(angles);
 };
@@ -309,8 +317,9 @@ let invalidRange = [75, 150];
 let isStarted = false;
 
 function squatsAssistance(angles) {
-    const theAngle = Math.floor(parseFloat(angles.rightKnee.toFixed(1)));
-    const theHipAngle = Math.floor(parseFloat(angles.rightHip.toFixed(1)));
+
+    const theAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightKnee.toFixed(1))) : Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
+    const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
 
     // const theAngle = Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
     // const theHipAngle = Math.floor(parseFloat(angles.leftHip.toFixed(1)));
@@ -327,7 +336,7 @@ function squatsAssistance(angles) {
             minHipAngle: theHipAngle,
             maxHipAngle: theHipAngle,
             startTime: Date.now(),
-            dirCount: 0,            
+            dirCount: 0,
             incorrectInstructions: {},
             correctInstructions: {},
             direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
@@ -482,8 +491,8 @@ function squatsAssistance(angles) {
 }
 
 function legspushAssistance(angles) {
-    const theAngle = Math.floor(parseFloat(angles.rightKnee.toFixed(1)));
-    const theHipAngle = Math.floor(parseFloat(angles.rightHip.toFixed(1)));
+    const theAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightKnee.toFixed(1))) : Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
+    const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
 
     // const theAngle = Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
     // const theHipAngle = Math.floor(parseFloat(angles.leftHip.toFixed(1)));
@@ -500,7 +509,7 @@ function legspushAssistance(angles) {
             minHipAngle: theHipAngle,
             maxHipAngle: theHipAngle,
             startTime: Date.now(),
-            dirCount: 0,            
+            dirCount: 0,
             incorrectInstructions: {},
             correctInstructions: {},
             direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
@@ -645,8 +654,10 @@ function legspushAssistance(angles) {
 }
 
 function pullhorisontalAssistance(angles) {
-    const theAngle = Math.floor(parseFloat(angles.leftElbow.toFixed(1)));
-    const theHipAngle = Math.floor(parseFloat(angles.leftHip.toFixed(1)));
+
+    const theAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightElbow.toFixed(1))) : Math.floor(parseFloat(angles.leftElbow.toFixed(1)));
+    const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
+
 
     // const theAngle = Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
     // const theHipAngle = Math.floor(parseFloat(angles.leftHip.toFixed(1)));
@@ -663,7 +674,7 @@ function pullhorisontalAssistance(angles) {
             minHipAngle: theHipAngle,
             maxHipAngle: theHipAngle,
             startTime: Date.now(),
-            dirCount: 0,            
+            dirCount: 0,
             incorrectInstructions: {},
             correctInstructions: {},
             direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
@@ -737,7 +748,7 @@ function pullhorisontalAssistance(angles) {
                     squatsEx.minAngle = 180;
                     squatsEx.maxAngle = 0;
                     squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;                
+                    squatsEx.maxHipAngle = 0;
                 }
             }
         }
@@ -814,8 +825,9 @@ function pullhorisontalAssistance(angles) {
 }
 
 function backbridgeAssistance(angles) {
-    const theAngle = Math.floor(parseFloat(angles.leftHip.toFixed(1)));//Math.floor(parseFloat(angles.rightKnee.toFixed(1)));
-    const theHipAngle = Math.floor(parseFloat(angles.rightHip.toFixed(1)));
+
+    const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
+    const theAngle = theHipAngle;
 
     // const theAngle = Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
     // const theHipAngle = Math.floor(parseFloat(angles.leftHip.toFixed(1)));
@@ -1008,8 +1020,10 @@ function backbridgeAssistance(angles) {
 }
 
 function pulltopAssistance(angles) {
-    const theAngle = Math.floor(parseFloat(angles.rightElbow.toFixed(1)));
-    const theHipAngle = Math.floor(parseFloat(angles.rightHip.toFixed(1)));
+    const theAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightElbow.toFixed(1))) : Math.floor(parseFloat(angles.leftElbow.toFixed(1)));
+    const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
+
+
     if (theAngle < 0 || theHipAngle < 0) {
         return;
     }
@@ -1022,7 +1036,7 @@ function pulltopAssistance(angles) {
             minHipAngle: theHipAngle,
             maxHipAngle: theHipAngle,
             startTime: Date.now(),
-            dirCount: 0,            
+            dirCount: 0,
             incorrectInstructions: {},
             correctInstructions: {},
             direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
@@ -1080,7 +1094,7 @@ function pulltopAssistance(angles) {
                         squatsEx.incorrectInstructions[1] = incorrectVoiceInstructions[1];
                         console.log(squatsEx.incorrectInstructions[1]);
                     }
-                 
+
                     let notice = "" + (squatsEx.counter);
                     playVoice(notice);
                     console.log(notice + ":" + squatsEx.angle);
@@ -1088,7 +1102,7 @@ function pulltopAssistance(angles) {
                     squatsEx.minAngle = 180;
                     squatsEx.maxAngle = 0;
                     squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;                 
+                    squatsEx.maxHipAngle = 0;
                 }
             }
         }
@@ -1145,14 +1159,56 @@ function pulltopAssistance(angles) {
 
 }
 
-
-
 const processVideoFrame = async () => {
     if (!fileVideoElement.paused && !fileVideoElement.ended) {
-        await pose.send({ image: fileVideoElement });
+        //await pose.send({ image: fileVideoElement });
+        canvas.width = window.innerWidth * 0.9;
+        canvas.height = canvas.width * fileVideoElement.videoHeight / fileVideoElement.videoWidth;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(fileVideoElement, 0, 0, canvas.width, canvas.height);
+        bodyPose.detect(canvas, onBodyPoseResult);
         fileVideoElement.requestVideoFrameCallback(processVideoFrame);
     }
 };
+
+function _draw() {
+    context.strokeStyle = "blue";
+    context.lineWidth = 3;
+
+    // Draw the skeleton connections
+    for (let i = 0; i < poses.length; i++) {
+        let pose = poses[i];
+        for (let j = 0; j < connections.length; j++) {
+            let pointAIndex = connections[j][0];
+            let pointBIndex = connections[j][1];
+            let pointA = pose.keypoints[pointAIndex];
+            let pointB = pose.keypoints[pointBIndex];
+            context.beginPath();
+            context.moveTo(pointA.x, pointA.y);
+            context.lineTo(pointB.x, pointB.y);
+            context.stroke();
+        }
+    }
+
+    // Draw all the tracked landmark points
+    for (let i = 0; i < poses.length; i++) {
+        let pose = poses[i];
+        for (let j = 0; j < pose.keypoints.length; j++) {
+            let keypoint = pose.keypoints[j];
+            // Only draw a circle if the keypoint's confidence is bigger than 0.1
+            context.beginPath();
+            context.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
+            context.fillStyle = "red";
+            context.fill();
+        }
+    }
+}
+
+onBodyPoseResult = (result) => {
+    poses = result;
+    _draw();
+    updateAnglesDisplay(poses[0]);
+}
 
 let recorder = null;
 let blobArray = null;
