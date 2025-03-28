@@ -26,7 +26,7 @@ const CAMERA_VIEW_SIDE = params['side'];
 const CAMERA_VIEW_SIDE_LEFT = 0;
 const CAMERA_VIEW_SIDE_RIGHT = 1;
 
-let bodyPose = ml5.bodyPose();
+let bodyPose = ml5.bodyPose("BlazePose");
 
 const connections = bodyPose.getSkeleton();
 let poses = [];
@@ -87,13 +87,18 @@ const blazePoseConnections = [
 //     }
 // });
 // // Start Mediapipe Camera
-// const camera = new Camera(videoElement, {
-//     onFrame: async () => {
-//         await pose.send({ image: videoElement });
-//     },
-//     //width: 1280,
-//     //height: 720
-// });
+const camera = new Camera(videoElement, {
+    onFrame: async () => {
+        canvas.width = window.innerWidth * 0.9;
+        canvas.height = canvas.width * videoElement.videoHeight / videoElement.videoWidth;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        bodyPose.detect(canvas, onBodyPoseResult);
+        //await pose.send({ image: videoElement });
+    },
+    //width: 1280,
+    //height: 720
+});
 
 // Calculate angle between three points
 const calculateAngle = (a, b, c) => {
