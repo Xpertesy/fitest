@@ -316,7 +316,7 @@ let minAngle = 45;
 let downAmplitude = 30;
 let maxAngle = 180;
 let upAmplitude = 30;
-let directionCounter = 5;
+let directionCounter = 10;
 let invalidRange = [75, 150];
 
 let isStarted = false;
@@ -350,7 +350,7 @@ function squatsAssistance(angles) {
         downAmplitude = 30;
         maxAngle = 180;
         upAmplitude = 30;
-        directionCounter = 5;
+        directionCounter = 10;
         invalidRange = [75, 150];
         if (!isRecording && camera.g) {
             onGotRecordingStream(camera.g);
@@ -523,7 +523,7 @@ function legspushAssistance(angles) {
         downAmplitude = 20;
         maxAngle = 160;
         upAmplitude = 20;
-        directionCounter = 5;
+        directionCounter = 10;
         invalidRange = [70, 150];
         if (!isRecording && camera.g) {
             onGotRecordingStream(camera.g);
@@ -688,7 +688,7 @@ function pullhorisontalAssistance(angles) {
         downAmplitude = 20;
         maxAngle = 180;
         upAmplitude = 20;
-        directionCounter = 5;
+        directionCounter = 10;
         invalidRange = [70, 150];
         if (!isRecording && camera.g) {
             onGotRecordingStream(camera.g);
@@ -857,7 +857,7 @@ function backbridgeAssistance(angles) {
         downAmplitude = 20;
         maxAngle = 180;
         upAmplitude = 20;
-        directionCounter = 5;
+        directionCounter = 10;
         invalidRange = [75, 150];
         if (!isRecording && camera.g) {
             onGotRecordingStream(camera.g);
@@ -1050,7 +1050,7 @@ function pulltopAssistance(angles) {
         downAmplitude = 15;
         maxAngle = 180;
         upAmplitude = 15;
-        directionCounter = 5;
+        directionCounter = 10;
         invalidRange = [75, 150];
         if (!isRecording && camera.g) {
             onGotRecordingStream(camera.g);
