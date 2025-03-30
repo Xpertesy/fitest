@@ -356,6 +356,9 @@ function squatsAssistance(angles) {
             onGotRecordingStream(camera.g);
         }
     }
+    // if (Math.abs(squatsEx.angle - theAngle) > 30.0) {
+    //     isStarted = false;
+    // }
     squatsEx.maxAngle = Math.max(squatsEx.maxAngle, theAngle);
     squatsEx.minAngle = Math.min(squatsEx.minAngle, theAngle);
     squatsEx.maxHipAngle = Math.max(squatsEx.maxHipAngle, theHipAngle);
@@ -1313,6 +1316,6 @@ function playVoice(text) {
     //return;
     const msg = new SpeechSynthesisUtterance(text);
     msg.rate = 0.7
-    //msg.lang = "en-US";
+    msg.lang = "en-US";
     window.speechSynthesis.speak(msg);
 }
