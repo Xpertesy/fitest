@@ -199,16 +199,17 @@ function compileAndPlayInstructions() {
     let notice = "";
     if (Object.keys(squatsEx.incorrectInstructions).length > 0) {
         Object.keys(squatsEx.incorrectInstructions).forEach(key => {
-            //notice = notice + squatsEx.incorrectInstructions[key];
+            notice = notice + " - " + squatsEx.incorrectInstructions[key];
             playVoice(squatsEx.incorrectInstructions[key]);
         });
     }
     else {
         Object.keys(squatsEx.correctInstructions).forEach(key => {
-            //notice = notice + squatsEx.correctInstructions[key];
+            notice = notice + " - " + squatsEx.incorrectInstructions[key];
             playVoice(squatsEx.correctInstructions[key]);
         });
     }
+    anglesDisplay.textContent = notice;
 
     //playVoice(notice);
 }
@@ -303,7 +304,28 @@ const incorrectVoiceInstructionsSet = {
     'pullhorisontal': pullhorisontalIncorrectVoiceInstructions,
     'pulltop': pulltopIncorrectVoiceInstructions
 }
+function getNewSquatsEx(theAngle, theHipAngle) {
+    return {
+        counter: 0,
+        angle: theAngle,
+        minAngle: theAngle,
+        maxAngle: theAngle,
+        minHipAngle: theHipAngle,
+        maxHipAngle: theHipAngle,
+        startTime: Date.now(),
+        dirCount: 0,
+        incorrectInstructions: {},
+        correctInstructions: {},
+        direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
+    };
+}
 
+function resetMinMax(squatsEx) {
+    squatsEx.minAngle = 180;
+    squatsEx.maxAngle = 0;
+    squatsEx.minHipAngle = 180;
+    squatsEx.maxHipAngle = 0;    
+}
 const correctVoiceInstructions = correctVoiceInstructionsSet[EXE_TYPE];
 const incorrectVoiceInstructions = incorrectVoiceInstructionsSet[EXE_TYPE];
 
@@ -333,20 +355,8 @@ function squatsAssistance(angles) {
         return;
     }
     if (!squatsEx) {
-        squatsEx = {
-            counter: 0,
-            angle: theAngle,
-            minAngle: theAngle,
-            maxAngle: theAngle,
-            minHipAngle: theHipAngle,
-            maxHipAngle: theHipAngle,
-            startTime: Date.now(),
-            dirCount: 0,
-            incorrectInstructions: {},
-            correctInstructions: {},
-            direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
-        }
-        minAngle = 45;
+        squatsEx = getNewSquatsEx(theAngle, theHipAngle);
+        minAngle = 50;
         downAmplitude = 30;
         maxAngle = 180;
         upAmplitude = 30;
@@ -375,6 +385,7 @@ function squatsAssistance(angles) {
             squatsEx.dirCount = 0;
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_UP;
+                resetMinMax(squatsEx);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction from down to up
                 if (squatsEx.minAngle > 95.0) {
@@ -394,15 +405,15 @@ function squatsAssistance(angles) {
                     isStarted = squatsEx.counter > 1;
                     if (squatsEx.minAngle > minAngle + downAmplitude) {
                         squatsEx.incorrectInstructions[0] = incorrectVoiceInstructions[0];
-                        console.log(squatsEx.incorrectInstructions[0]);
+                        console.log(squatsEx.incorrectInstructions[0] + ":" + squatsEx.minAngle);
                     }
                     else if (squatsEx.minAngle < minAngle) {
                         squatsEx.incorrectInstructions[1] = incorrectVoiceInstructions[1];
                         console.log(squatsEx.incorrectInstructions[1]);
                     }
-                    else if (squatsEx.minHipAngle < 45.0) {
+                    else if (squatsEx.minHipAngle < 30.0) {
                         squatsEx.incorrectInstructions[2] = incorrectVoiceInstructions[2];
-                        console.log(squatsEx.incorrectInstructions[2]);
+                        console.log(squatsEx.incorrectInstructions[2] + ":" + squatsEx.minHipAngle);
                     }
                     else if (squatsEx.minHipAngle > 75.0) {
                         squatsEx.incorrectInstructions[3] = incorrectVoiceInstructions[3];
@@ -412,10 +423,7 @@ function squatsAssistance(angles) {
                     playVoice(notice);
                     console.log(notice + ":" + squatsEx.angle);
 
-                    squatsEx.minAngle = 180;
-                    squatsEx.maxAngle = 0;
-                    squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;
+                    resetMinMax(squatsEx);
                 }
             }
         }
@@ -431,6 +439,7 @@ function squatsAssistance(angles) {
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
                 squatsEx.startTime = Date.now();
+                resetMinMax(squatsEx);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction from up to down
             {
@@ -450,15 +459,15 @@ function squatsAssistance(angles) {
                         squatsEx.incorrectInstructions[4] = incorrectVoiceInstructions[4];
                         console.log(squatsEx.incorrectInstructions[4]);
                     }
-                    else if (Math.round(squatsEx.maxAngle + 0.5) < 170.0 && squatsEx.maxAngle > 160.0) {
+                    else if (Math.round(squatsEx.maxAngle + 0.5) < 160.0 && squatsEx.maxAngle > 150.0) {
                         squatsEx.incorrectInstructions[5] = incorrectVoiceInstructions[5];
                         console.log(squatsEx.incorrectInstructions[5]);
                     }
                     else if (squatsEx.startTime > 0 && squatsEx.counter > 0) {
                         const period = Date.now() - squatsEx.startTime;
-                        if (period > 2000 && period < 3000) {
+                        if (period > 2000 && period < 2500) {
                             squatsEx.incorrectInstructions[6] = incorrectVoiceInstructions[6];
-                            console.log(squatsEx.incorrectInstructions[6]);
+                            console.log(squatsEx.incorrectInstructions[6] + ":" + period);
                         }
                         else if (period > 15000) {
                             squatsEx.incorrectInstructions[7] = incorrectVoiceInstructions[7];
@@ -480,10 +489,7 @@ function squatsAssistance(angles) {
                     else {
                         squatsEx.incorrectInstructions[0] = correctVoiceInstructions[0];
                     }
-                    squatsEx.minAngle = 180;
-                    squatsEx.maxAngle = 0;
-                    squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;
+                    resetMinMax(squatsEx);
                     squatsEx.startTime = Date.now();
                 }
             }
@@ -509,19 +515,7 @@ function legspushAssistance(angles) {
         return;
     }
     if (!squatsEx) {
-        squatsEx = {
-            counter: 0,
-            angle: theAngle,
-            minAngle: theAngle,
-            maxAngle: theAngle,
-            minHipAngle: theHipAngle,
-            maxHipAngle: theHipAngle,
-            startTime: Date.now(),
-            dirCount: 0,
-            incorrectInstructions: {},
-            correctInstructions: {},
-            direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
-        }
+        squatsEx = getNewSquatsEx(theAngle, theHipAngle);
         minAngle = 90;
         downAmplitude = 20;
         maxAngle = 160;
@@ -549,6 +543,7 @@ function legspushAssistance(angles) {
 
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_UP;
+                resetMinMax(squatsEx);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction from down to up
                 if (squatsEx.minAngle > 135.0) {
@@ -578,10 +573,7 @@ function legspushAssistance(angles) {
                     playVoice(notice);
                     console.log(notice + ":" + squatsEx.angle);
 
-                    squatsEx.minAngle = 180;
-                    squatsEx.maxAngle = 0;
-                    squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;
+                    resetMinMax(squatsEx);
                 }
             }
         }
@@ -596,6 +588,7 @@ function legspushAssistance(angles) {
 
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+                resetMinMax(squatsEx);
                 squatsEx.startTime = Date.now();
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction from up to down
@@ -641,10 +634,7 @@ function legspushAssistance(angles) {
                         console.log(squatsEx.correctInstructions[0]);
                     }
 
-                    squatsEx.minAngle = 180;
-                    squatsEx.maxAngle = 0;
-                    squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;
+                    resetMinMax(squatsEx);
                     squatsEx.startTime = Date.now();
                 }
             }
@@ -674,19 +664,7 @@ function pullhorisontalAssistance(angles) {
         return;
     }
     if (!squatsEx) {
-        squatsEx = {
-            counter: 0,
-            angle: theAngle,
-            minAngle: theAngle,
-            maxAngle: theAngle,
-            minHipAngle: theHipAngle,
-            maxHipAngle: theHipAngle,
-            startTime: Date.now(),
-            dirCount: 0,
-            incorrectInstructions: {},
-            correctInstructions: {},
-            direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
-        }
+        squatsEx = getNewSquatsEx(theAngle, theHipAngle);
         minAngle = 45;
         downAmplitude = 20;
         maxAngle = 180;
@@ -714,6 +692,7 @@ function pullhorisontalAssistance(angles) {
 
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_UP;
+                resetMinMax(squatsEx);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction from down to up
                 if (squatsEx.minAngle > 95.0) {
@@ -753,10 +732,7 @@ function pullhorisontalAssistance(angles) {
                     playVoice(notice);
                     console.log(notice + ":" + squatsEx.angle);
 
-                    squatsEx.minAngle = 180;
-                    squatsEx.maxAngle = 0;
-                    squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;
+                    resetMinMax(squatsEx);
                 }
             }
         }
@@ -771,6 +747,7 @@ function pullhorisontalAssistance(angles) {
 
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+                resetMinMax(squatsEx);
                 squatsEx.startTime = Date.now();
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction from up to down
@@ -812,10 +789,7 @@ function pullhorisontalAssistance(angles) {
                         console.log(squatsEx.correctInstructions[0]);
                     }
 
-                    squatsEx.minAngle = 180;
-                    squatsEx.maxAngle = 0;
-                    squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;
+                    resetMinMax(squatsEx);
                     squatsEx.startTime = Date.now();
                 }
             }
@@ -844,18 +818,7 @@ function backbridgeAssistance(angles) {
         return;
     }
     if (!squatsEx) {
-        squatsEx = {
-            counter: 0,
-            angle: theAngle,
-            minAngle: theAngle,
-            maxAngle: theAngle,
-            minHipAngle: theHipAngle,
-            maxHipAngle: theHipAngle,
-            startTime: Date.now(),
-            dirCount: 0,
-            test: 0,
-            direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
-        }
+        squatsEx = getNewSquatsEx(theAngle, theHipAngle);
         minAngle = 90;
         downAmplitude = 20;
         maxAngle = 180;
@@ -885,6 +848,7 @@ function backbridgeAssistance(angles) {
 
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_UP;
+                resetMinMax(squatsEx);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction from down to up
                 if (squatsEx.minAngle > 165.0) {
@@ -919,10 +883,7 @@ function backbridgeAssistance(angles) {
                         playVoice(notice);
                         console.log(notice + ":" + squatsEx.angle);
                     }
-                    squatsEx.minAngle = 180;
-                    squatsEx.maxAngle = 0;
-                    squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;
+                    resetMinMax(squatsEx);
                     // if (squatsEx.counter > 30) {
                     //     stopExerciseAssistance();
                     // }
@@ -942,6 +903,7 @@ function backbridgeAssistance(angles) {
 
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+                resetMinMax(squatsEx);
                 squatsEx.startTime = Date.now();
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction from up to down
@@ -1006,10 +968,7 @@ function backbridgeAssistance(angles) {
                         console.log(notice + `: ${squatsEx.minHipAngle}`);
                     }
 
-                    squatsEx.minAngle = 180;
-                    squatsEx.maxAngle = 0;
-                    squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;
+                    resetMinMax(squatsEx);
                     squatsEx.startTime = Date.now();
                     //console.log(`squatsEx.startTime: ${squatsEx.startTime}`);
                 }
@@ -1036,19 +995,7 @@ function pulltopAssistance(angles) {
         return;
     }
     if (!squatsEx) {
-        squatsEx = {
-            counter: 0,
-            angle: theAngle,
-            minAngle: theAngle,
-            maxAngle: theAngle,
-            minHipAngle: theHipAngle,
-            maxHipAngle: theHipAngle,
-            startTime: Date.now(),
-            dirCount: 0,
-            incorrectInstructions: {},
-            correctInstructions: {},
-            direction: EXCERCISE_DIRECTION_NONE //(0) - none, (1) - down, (-1) - up
-        }
+        squatsEx = getNewSquatsEx(theAngle, theHipAngle);
         minAngle = 65;
         downAmplitude = 15;
         maxAngle = 180;
@@ -1076,6 +1023,7 @@ function pulltopAssistance(angles) {
 
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_UP;
+                resetMinMax(squatsEx);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction
                 if (squatsEx.minAngle > 95.0) {
@@ -1107,10 +1055,7 @@ function pulltopAssistance(angles) {
                     playVoice(notice);
                     console.log(notice + ":" + squatsEx.angle);
 
-                    squatsEx.minAngle = 180;
-                    squatsEx.maxAngle = 0;
-                    squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;
+                    resetMinMax(squatsEx);
                 }
             }
         }
@@ -1125,6 +1070,7 @@ function pulltopAssistance(angles) {
 
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+                resetMinMax(squatsEx);
                 squatsEx.startTime = Date.now();
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction
@@ -1147,10 +1093,7 @@ function pulltopAssistance(angles) {
 
                     }
 
-                    squatsEx.minAngle = 180;
-                    squatsEx.maxAngle = 0;
-                    squatsEx.minHipAngle = 180;
-                    squatsEx.maxHipAngle = 0;
+                    resetMinMax(squatsEx);
                     squatsEx.startTime = Date.now();
                 }
             }
