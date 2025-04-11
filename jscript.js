@@ -17,6 +17,7 @@ const canvas = document.getElementById('fitnessCanvas');
 const button = document.getElementById('startStopButton');
 const buttonInstructions = document.getElementById('playInstructions');
 const anglesDisplay = document.getElementById('anglesDisplay');
+const statusDisplay = document.getElementById('statusDisplay');
 const context = canvas.getContext('2d');
 const exerciseSelector = document.getElementById('exerciseSelector');
 const title = document.getElementById('maintitle');
@@ -86,19 +87,26 @@ const blazePoseConnections = [
 //         updateAnglesDisplay(results.poseLandmarks);
 //     }
 // });
+function onFrameNone() { }
+let onFrameFunc = onFrame;
+
 // // Start Mediapipe Camera
 const camera = new Camera(videoElement, {
-    onFrame: async () => {
-        canvas.width = window.innerWidth * 0.9;
-        canvas.height = canvas.width * videoElement.videoHeight / videoElement.videoWidth;
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        bodyPose.detect(canvas, onBodyPoseResult);
-        //await pose.send({ image: videoElement });
-    },
+    onFrame: onFrameFunc,
     //width: 1280,
     //height: 720
 });
+
+
+function onFrame() {
+    onFrameFunc = onFrameNone;
+    canvas.width = window.innerWidth * 0.9;
+    canvas.height = canvas.width * videoElement.videoHeight / videoElement.videoWidth;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    bodyPose.detect(canvas, onBodyPoseResult);
+    //await pose.send({ image: videoElement });
+}
 
 // Calculate angle between three points
 const calculateAngle = (a, b, c) => {
@@ -128,24 +136,29 @@ const calculateAngle = (a, b, c) => {
 const angles = {};
 // Update angles display
 const updateAnglesDisplay = (landmarks) => {
-    // Right side angles
-    angles.rightElbow = calculateAngle(landmarks.right_shoulder, landmarks.right_elbow, landmarks.right_wrist);
-    angles.rightShoulder = calculateAngle(landmarks.right_hip, landmarks.right_shoulder, landmarks.right_elbow);
-    angles.rightHip = calculateAngle(landmarks.right_knee, landmarks.right_hip, landmarks.right_shoulder);
-    angles.rightKnee = calculateAngle(landmarks.right_ankle, landmarks.right_knee, landmarks.right_hip);
+    try {
+        if (landmarks) {
+            // Right side angles
+            angles.rightElbow = calculateAngle(landmarks.right_shoulder, landmarks.right_elbow, landmarks.right_wrist);
+            angles.rightShoulder = calculateAngle(landmarks.right_hip, landmarks.right_shoulder, landmarks.right_elbow);
+            angles.rightHip = calculateAngle(landmarks.right_knee, landmarks.right_hip, landmarks.right_shoulder);
+            angles.rightKnee = calculateAngle(landmarks.right_ankle, landmarks.right_knee, landmarks.right_hip);
 
-    // Left side angles
-    angles.rightElbow = calculateAngle(landmarks.left_shoulder, landmarks.left_elbow, landmarks.left_wrist);
-    angles.leftShoulder = calculateAngle(landmarks.left_hip, landmarks.left_shoulder, landmarks.left_elbow);
-    angles.leftHip = calculateAngle(landmarks.left_knee, landmarks.left_hip, landmarks.left_shoulder);
-    angles.leftKnee = calculateAngle(landmarks.left_ankle, landmarks.left_knee, landmarks.left_hip);
+            // Left side angles
+            angles.rightElbow = calculateAngle(landmarks.left_shoulder, landmarks.left_elbow, landmarks.left_wrist);
+            angles.leftShoulder = calculateAngle(landmarks.left_hip, landmarks.left_shoulder, landmarks.left_elbow);
+            angles.leftHip = calculateAngle(landmarks.left_knee, landmarks.left_hip, landmarks.left_shoulder);
+            angles.leftKnee = calculateAngle(landmarks.left_ankle, landmarks.left_knee, landmarks.left_hip);
 
-    anglesDisplay.textContent = `
-        Right Hip: ${angles.rightHip.toFixed(1)}°, 
-        Right Knee: ${angles.rightKnee.toFixed(1)}°, 
-    `;
+            anglesDisplay.textContent = `
+                Right Hip: ${angles.rightHip.toFixed(1)}°, 
+                Right Knee: ${angles.rightKnee.toFixed(1)}°, `;
 
-    exerciseAssistance(angles);
+            exerciseAssistance(angles);
+        }
+    } catch (error) {
+        console.error(error + " : " + landmarks);
+    }
 };
 
 // function drawMirroredImage(image) {
@@ -169,18 +182,28 @@ function playInstructionsClick() {
 }
 
 function startStopButtonClick() {
-    isRunning = !isRunning;
-    button.textContent = isRunning ? 'Stop' : 'Start';
     if (isRunning) {
-        camera.start();
-        startExerciseAssistance();
-        console.log('Pose detection started');
+        stopButtonClick();
     } else {
-        isRecording = false;
-        camera.stop();
-        stopExerciseAssistance();
-        console.log('Pose detection stopped');
+        startButtonClick();
     }
+}
+
+function startButtonClick() {
+    isRunning = true;
+    button.textContent = 'Stop';
+    camera.start();
+    startExerciseAssistance();
+    console.log('Pose detection started');
+}
+
+function stopButtonClick() {
+    isRunning = false;
+    button.textContent = 'Start';
+    isRecording = false;
+    camera.stop();
+    stopExerciseAssistance();
+    console.log('Pose detection stopped');
 }
 
 function startExerciseAssistance() {
@@ -193,6 +216,10 @@ function startExerciseAssistance() {
 function stopExerciseAssistance() {
     exerciseAssistance = noEx;
     //squatsEx = null;
+}
+
+function updateStatus(status) {
+    statusDisplay.textContent = status;
 }
 
 function compileAndPlayInstructions() {
@@ -221,14 +248,16 @@ const exeAssistent = {
     'squats': squatsAssistance,
     'legspush': legspushAssistance,
     'pullhorisontal': pullhorisontalAssistance,
-    'pulltop': pulltopAssistance
+    'pulltop': pulltopAssistance,
+    'backbridge': backbridgeAssistance
 };
 
 const titles = {
     'squats': 'Squats',
     'legspush': 'Legs Push',
     'pullhorisontal': 'Horisontal Pull',
-    'pulltop': 'Pull Top'
+    'pulltop': 'Pull Top',
+    'backbridge': 'Back Bridge'
 };
 
 title.textContent = titles[EXE_TYPE];
@@ -253,6 +282,10 @@ let pullhorisontalCorrectVoiceInstructions = [
     "Great range of motion!", //1
 ];
 let pulltopCorrectVoiceInstructions = ["Good job!"];
+
+let backbridgeCorrectVoiceInstructions = [
+    "Good job!"
+];
 
 let squatsIncorrectVoiceInstructions = [
     "Sit deeper!", //0
@@ -291,22 +324,31 @@ let pulltopIncorrectVoiceInstructions = [
     "Don't straighten your arms all the way, keep the tension.", //2
 ];
 
+
+let backbridgeIncorrectVoiceInstructions = [
+  
+];
+
+
 const correctVoiceInstructionsSet = {
     'squats': squatsCorrectVoiceInstructions,
     'legspush': legspushCorrectVoiceInstructions,
     'pullhorisontal': pullhorisontalCorrectVoiceInstructions,
-    'pulltop': pulltopCorrectVoiceInstructions
+    'pulltop': pulltopCorrectVoiceInstructions,
+    'backbridge' : backbridgeCorrectVoiceInstructions
 };
 
 const incorrectVoiceInstructionsSet = {
     'squats': squatsIncorrectVoiceInstructions,
     'legspush': legspushIncorrectVoiceInstructions,
     'pullhorisontal': pullhorisontalIncorrectVoiceInstructions,
-    'pulltop': pulltopIncorrectVoiceInstructions
+    'pulltop': pulltopIncorrectVoiceInstructions,
+    'backbridge' : backbridgeIncorrectVoiceInstructions
 }
 function getNewSquatsEx(theAngle, theHipAngle) {
     return {
         counter: 0,
+        moveCounter: 0,
         angle: theAngle,
         minAngle: theAngle,
         maxAngle: theAngle,
@@ -324,7 +366,8 @@ function resetMinMax(squatsEx) {
     squatsEx.minAngle = 180;
     squatsEx.maxAngle = 0;
     squatsEx.minHipAngle = 180;
-    squatsEx.maxHipAngle = 0;    
+    squatsEx.maxHipAngle = 0;
+    squatsEx.moveCounter = 0;
 }
 const correctVoiceInstructions = correctVoiceInstructionsSet[EXE_TYPE];
 const incorrectVoiceInstructions = incorrectVoiceInstructionsSet[EXE_TYPE];
@@ -340,10 +383,12 @@ let maxAngle = 180;
 let upAmplitude = 30;
 let directionCounter = 10;
 let invalidRange = [75, 150];
+let maxMoveCounter = 120;
 
 let isStarted = false;
 
 function squatsAssistance(angles) {
+    onFrameFunc = onFrame;
 
     const theAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightKnee.toFixed(1))) : Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
     const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
@@ -365,6 +410,20 @@ function squatsAssistance(angles) {
         if (!isRecording && camera.g) {
             onGotRecordingStream(camera.g);
         }
+        updateStatus('Seeking for direction...');
+    }
+
+    if (squatsEx.moveCounter > 60 && squatsEx.direction != EXCERCISE_DIRECTION_NONE) {
+        console.log("notice: squatsEx.moveCounter > 60");
+
+        if (isStarted) {
+            stopButtonClick();
+        }
+        else {
+            squatsEx = null;
+            resetRecordings();
+        }
+        return;
     }
     // if (Math.abs(squatsEx.angle - theAngle) > 30.0) {
     //     isStarted = false;
@@ -373,6 +432,8 @@ function squatsAssistance(angles) {
     squatsEx.minAngle = Math.min(squatsEx.minAngle, theAngle);
     squatsEx.maxHipAngle = Math.max(squatsEx.maxHipAngle, theHipAngle);
     squatsEx.minHipAngle = Math.min(squatsEx.minHipAngle, theHipAngle);
+    squatsEx.moveCounter++;
+
 
     let direction = squatsEx.direction == 0 ? 'none' : (squatsEx.direction > 0 ? 'down' : 'up');
     console.log(`theAngle: ${theAngle}, direction: ${direction}, angle: ${squatsEx.angle}, minAngle: ${squatsEx.minAngle}, maxAngle: ${squatsEx.maxAngle}, dirCount: ${squatsEx.dirCount}, counter: ${squatsEx.counter}, startTime: ${squatsEx.startTime}`);
@@ -386,13 +447,14 @@ function squatsAssistance(angles) {
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_UP;
                 resetMinMax(squatsEx);
+                updateStatus(`Direction: up. Excercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction from down to up
                 if (squatsEx.minAngle > 95.0) {
                     console.log("notice: squatsEx.minAngle > 95.0");
 
                     if (isStarted) {
-                        startStopButtonClick();
+                        stopButtonClick();
                     }
                     else {
                         squatsEx = null;
@@ -403,6 +465,7 @@ function squatsAssistance(angles) {
                     squatsEx.direction = EXCERCISE_DIRECTION_UP;
                     squatsEx.counter++;
                     isStarted = squatsEx.counter > 1;
+                    updateStatus(`Direction: up. Excercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
                     if (squatsEx.minAngle > minAngle + downAmplitude) {
                         squatsEx.incorrectInstructions[0] = incorrectVoiceInstructions[0];
                         console.log(squatsEx.incorrectInstructions[0] + ":" + squatsEx.minAngle);
@@ -440,6 +503,7 @@ function squatsAssistance(angles) {
                 squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
                 squatsEx.startTime = Date.now();
                 resetMinMax(squatsEx);
+                updateStatus(`Direction: down. Excercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction from up to down
             {
@@ -455,6 +519,8 @@ function squatsAssistance(angles) {
                 }
                 else {
                     squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+                    updateStatus(`Direction: down. Excercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
+
                     if (squatsEx.maxAngle > 176.0) {
                         squatsEx.incorrectInstructions[4] = incorrectVoiceInstructions[4];
                         console.log(squatsEx.incorrectInstructions[4]);
@@ -807,175 +873,182 @@ function pullhorisontalAssistance(angles) {
 }
 
 function backbridgeAssistance(angles) {
+    onFrameFunc = onFrame;
 
-    const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
-    const theAngle = theHipAngle;
+    // const theAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightKnee.toFixed(1))) : Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
+    // const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
 
     // const theAngle = Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
     // const theHipAngle = Math.floor(parseFloat(angles.leftHip.toFixed(1)));
+
+    const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
+    const theAngle = theHipAngle;
 
     if (theAngle < 0 || theHipAngle < 0) {
         return;
     }
     if (!squatsEx) {
         squatsEx = getNewSquatsEx(theAngle, theHipAngle);
-        minAngle = 90;
-        downAmplitude = 20;
+        minAngle = 45;
+        downAmplitude = 10;
         maxAngle = 180;
-        upAmplitude = 20;
-        directionCounter = 10;
+        upAmplitude = 10;
+        directionCounter = 5;
         invalidRange = [75, 150];
         if (!isRecording && camera.g) {
             onGotRecordingStream(camera.g);
         }
+        updateStatus('Seeking for direction...');
     }
+
+    if (squatsEx.moveCounter > maxMoveCounter && squatsEx.direction != EXCERCISE_DIRECTION_NONE) {
+        console.log(`notice: squatsEx.moveCounter > ${maxMoveCounter}`);
+
+        if (isStarted) {
+            stopButtonClick();
+        }
+        else {
+            squatsEx = null;
+            resetRecordings();
+        }
+        return;
+    }
+    // if (Math.abs(squatsEx.angle - theAngle) > 30.0) {
+    //     isStarted = false;
+    // }
     squatsEx.maxAngle = Math.max(squatsEx.maxAngle, theAngle);
     squatsEx.minAngle = Math.min(squatsEx.minAngle, theAngle);
     squatsEx.maxHipAngle = Math.max(squatsEx.maxHipAngle, theHipAngle);
     squatsEx.minHipAngle = Math.min(squatsEx.minHipAngle, theHipAngle);
+    squatsEx.moveCounter++;
+
 
     let direction = squatsEx.direction == 0 ? 'none' : (squatsEx.direction > 0 ? 'down' : 'up');
-    console.log(`theAngle: ${theAngle}, direction: ${direction}, angle: ${squatsEx.angle}, minAngle: ${squatsEx.minAngle}, maxAngle: ${squatsEx.maxAngle}, dirCount: ${squatsEx.dirCount}, counter: ${squatsEx.counter}, startTime: ${squatsEx.startTime}`);
+    console.log(`theAngle: ${theAngle}, direction: ${direction}, angle: ${squatsEx.angle}, minAngle: ${squatsEx.minAngle}, maxAngle: ${squatsEx.maxAngle}, moveCounter: ${squatsEx.moveCounter}, dirCount: ${squatsEx.dirCount}, kneeAngle: ${angles.leftKnee.toFixed(1)}, counter: ${squatsEx.counter}, startTime: ${squatsEx.startTime}`);
     if (squatsEx.angle < theAngle) //up
     {
         squatsEx.angle = theAngle;
-        //squatsEx.minAngle = Math.min(squatsEx.minAngle, theAngle);
         squatsEx.dirCount--;
-        //console.log(`theAngle: ${theAngle}, squatsEx.dirCount: ${squatsEx.dirCount}`);
 
         if (squatsEx.dirCount < - directionCounter) {
             squatsEx.dirCount = 0;
-
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_UP;
                 resetMinMax(squatsEx);
+                updateStatus(`Direction: up. Excercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction from down to up
-                if (squatsEx.minAngle > 165.0) {
+                if (squatsEx.minAngle > 120.0) {
                     console.log("notice: squatsEx.minAngle > 120.0");
-                    squatsEx = null;
+
+                    if (isStarted) {
+                        stopButtonClick();
+                    }
+                    else {
+                        squatsEx = null;
+                        resetRecordings();
+                    }
                 }
                 else {
                     squatsEx.direction = EXCERCISE_DIRECTION_UP;
                     squatsEx.counter++;
+                    isStarted = squatsEx.counter > 1;
+                    updateStatus(`Direction: up. Excercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
                     if (squatsEx.minAngle > minAngle + downAmplitude) {
-                        let notice = voiceInstructions[3];
-                        playVoice(notice);
-                        console.log(notice + ":" + squatsEx.minAngle);
+                        // squatsEx.incorrectInstructions[0] = incorrectVoiceInstructions[0];
+                        // console.log(squatsEx.incorrectInstructions[0] + ":" + squatsEx.minAngle);
                     }
                     else if (squatsEx.minAngle < minAngle) {
-                        let notice = voiceInstructions[4];
-                        playVoice(notice);
-                        console.log(notice + ":" + squatsEx.minAngle);
+                        // squatsEx.incorrectInstructions[1] = incorrectVoiceInstructions[1];
+                        // console.log(squatsEx.incorrectInstructions[1]);
                     }
-                    else if (squatsEx.minHipAngle < 45.0) {
-                        let notice = voiceInstructions[5];
-                        playVoice(notice);
-                        console.log(notice + ":" + squatsEx.minHipAngle);
+                    else if (squatsEx.minHipAngle < 30.0) {
+                        // squatsEx.incorrectInstructions[2] = incorrectVoiceInstructions[2];
+                        // console.log(squatsEx.incorrectInstructions[2] + ":" + squatsEx.minHipAngle);
                     }
                     else if (squatsEx.minHipAngle > 75.0) {
-                        let notice = voiceInstructions[6];
-                        playVoice(notice);
-                        console.log(notice + ":" + squatsEx.minHipAngle);
+                        // squatsEx.incorrectInstructions[3] = incorrectVoiceInstructions[3];
+                        // console.log(squatsEx.incorrectInstructions[3]);
                     }
-                    else {
-                        let notice = voiceInstructions[7];
-                        playVoice(notice);
-                        console.log(notice + ":" + squatsEx.angle);
-                    }
+                    let notice = "" + (squatsEx.counter);
+                    playVoice(notice);
+                    console.log(notice + ":" + squatsEx.angle);
+
                     resetMinMax(squatsEx);
-                    // if (squatsEx.counter > 30) {
-                    //     stopExerciseAssistance();
-                    // }
                 }
             }
         }
     }
     else if (squatsEx.angle > theAngle) //down
     {
-        //squatsEx.maxAngle = Math.max(squatsEx.maxAngle, theAngle);
         squatsEx.angle = theAngle;
         squatsEx.dirCount++;
-        //console.log(`theAngle: ${theAngle}, squatsEx.dirCount: ${squatsEx.dirCount}`);
 
         if (squatsEx.dirCount > directionCounter) {
             squatsEx.dirCount = 0;
 
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
-                resetMinMax(squatsEx);
                 squatsEx.startTime = Date.now();
+                resetMinMax(squatsEx);
+                updateStatus(`Direction: down. Excercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction from up to down
             {
-                if (theAngle < 100) {
+                if (squatsEx.maxAngle < 150 && !isStarted) {
                     squatsEx = null;
+                    resetRecordings();
                     console.log("notice: theAngle < 100");
                 }
-                else if (squatsEx.angle - theAngle > 20) {
+                else if (squatsEx.angle - theAngle > 20 && !isStarted) {
                     squatsEx = null;
+                    resetRecordings();
                     console.log("notice: squatsEx.angle - theAngle > 20");
                 }
-                // else if (squatsEx.minAngle - squatsEx.minAngle < 110) 
-                // {
-                //     squatsEx = null;
-                //     console.log("notice: squatsEx.minAngle - squatsEx.minAngle < 110");
-                // }
                 else {
                     squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+                    updateStatus(`Direction: down. Excercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
 
                     if (squatsEx.maxAngle > 176.0) {
-                        let notice = voiceInstructions[8];
-                        playVoice(notice);
-                        console.log(notice + ":" + squatsEx.maxAngle);
+                        // squatsEx.incorrectInstructions[4] = incorrectVoiceInstructions[4];
+                        // console.log(squatsEx.incorrectInstructions[4]);
                     }
-                    else if (Math.round(squatsEx.maxAngle + 0.5) < 170.0 && squatsEx.maxAngle > 160.0) {
-                        let notice = voiceInstructions[9];
-                        playVoice(notice);
-                        console.log(notice + ":" + squatsEx.maxAngle);
+                    else if (Math.round(squatsEx.maxAngle + 0.5) < 160.0 && squatsEx.maxAngle > 150.0) {
+                        // squatsEx.incorrectInstructions[5] = incorrectVoiceInstructions[5];
+                        // console.log(squatsEx.incorrectInstructions[5]);
                     }
                     else if (squatsEx.startTime > 0 && squatsEx.counter > 0) {
                         const period = Date.now() - squatsEx.startTime;
-                        if (period > 2000 && period < 3000) {
-                            let notice = voiceInstructions[10];
-                            playVoice(notice);
-                            console.log(notice + `: ${squatsEx.maxAngle}, period: ${period}`);
+                        if (period > 2000 && period < 2500) {
+                            // squatsEx.incorrectInstructions[6] = incorrectVoiceInstructions[6];
+                            // console.log(squatsEx.incorrectInstructions[6] + ":" + period);
                         }
                         else if (period > 15000) {
-                            let notice = voiceInstructions[11];
-                            playVoice(notice);
-                            console.log(notice + `: ${squatsEx.angle}, period: ${period}`);
+                            // squatsEx.incorrectInstructions[7] = incorrectVoiceInstructions[7];
+                            // console.log(squatsEx.incorrectInstructions[7]);
                         }
                     }
                     else if (squatsEx.minHipAngle < 45) {
-                        let notice = voiceInstructions[12];
-                        playVoice(notice);
-                        console.log(notice + `: ${squatsEx.minHipAngle}`);
+                        // squatsEx.incorrectInstructions[8] = incorrectVoiceInstructions[8];
+                        // console.log(squatsEx.incorrectInstructions[8]);
                     }
                     else if (squatsEx.maxAngle - squatsEx.minAngle > 110) {
-                        let notice = voiceInstructions[13];
-                        playVoice(notice);
-                        console.log(notice + `: ${squatsEx.minHipAngle}`);
+                        // squatsEx.incorrectInstructions[1] = correctVoiceInstructions[1];
+                        // console.log(squatsEx.correctInstructions[1]);
                     }
                     else if (squatsEx.minAngle < 55.0) {
-                        let notice = voiceInstructions[14];
-                        playVoice(notice);
-                        console.log(notice + `: ${squatsEx.minHipAngle}`);
+                        // squatsEx.incorrectInstructions[2] = correctVoiceInstructions[2];
+                        // console.log(squatsEx.correctInstructions[2]);
                     }
                     else {
-                        let notice = voiceInstructions[0];
-                        playVoice(notice);
-                        console.log(notice + `: ${squatsEx.minHipAngle}`);
+                        //squatsEx.incorrectInstructions[0] = correctVoiceInstructions[0];
                     }
-
                     resetMinMax(squatsEx);
                     squatsEx.startTime = Date.now();
-                    //console.log(`squatsEx.startTime: ${squatsEx.startTime}`);
                 }
             }
         }
     }
-
     try {
         if (squatsEx) {
             squatsEx.angle = theAngle;
@@ -983,7 +1056,6 @@ function backbridgeAssistance(angles) {
     } catch (error) {
         console.error(error);
     }
-
 }
 
 function pulltopAssistance(angles) {
@@ -1110,15 +1182,14 @@ function pulltopAssistance(angles) {
 
 }
 
-const processVideoFrame = async () => {
+const processVideoFrame = () => {
     if (!fileVideoElement.paused && !fileVideoElement.ended) {
         //await pose.send({ image: fileVideoElement });
         canvas.width = window.innerWidth * 0.9;
         canvas.height = canvas.width * fileVideoElement.videoHeight / fileVideoElement.videoWidth;
         context.clearRect(0, 0, canvas.width, canvas.height);
         context.drawImage(fileVideoElement, 0, 0, canvas.width, canvas.height);
-        bodyPose.detect(canvas, onBodyPoseResult);
-        fileVideoElement.requestVideoFrameCallback(processVideoFrame);
+        bodyPose.detect(canvas, onBodyPoseResultOffline);
     }
 };
 
@@ -1159,6 +1230,11 @@ onBodyPoseResult = (result) => {
     poses = result;
     _draw();
     updateAnglesDisplay(poses[0]);
+}
+
+onBodyPoseResultOffline = (result) => {
+    onBodyPoseResult(result);
+    fileVideoElement.requestVideoFrameCallback(processVideoFrame);
 }
 
 let recorder = null;
@@ -1241,7 +1317,7 @@ function fileVideoElementOnPause() {
     //recognition.stop();
     console.log("Voice command: STOP");
     stopExerciseAssistance();
-    compileAndPlayInstructions();
+    //compileAndPlayInstructions();
 }
 
 uploadVideo.addEventListener('change', (event) => {

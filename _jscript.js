@@ -207,14 +207,15 @@ const exeAssistent = {
     'squats': squatsAssistance,
     'legspush': legspushAssistance,
     'pullhorisontal': pullhorisontalAssistance,
-    'pulltop': pulltopAssistance
+    'pulltop': pulltopAssistance,
+    'backbridge': backbridgeAssistance
 };
 
 const titles = {
     'squats': 'Squats',
     'legspush': 'Legs Push',
     'pullhorisontal': 'Horisontal Pull',
-    'pulltop': 'Pull Top'
+    'pulltop': 'Pull Top',
 };
 
 title.textContent = titles[EXE_TYPE];
