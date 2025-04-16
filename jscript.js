@@ -1115,6 +1115,7 @@ function pulltopAssistance(angles) {
         if (!isRecording && camera.g) {
             onGotRecordingStream(camera.g);
         }
+        updateStatus('Seeking for direction...');
     }
     squatsEx.maxAngle = Math.max(squatsEx.maxAngle, theAngle);
     squatsEx.minAngle = Math.min(squatsEx.minAngle, theAngle);
@@ -1135,6 +1136,7 @@ function pulltopAssistance(angles) {
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_UP;
                 resetMinMax(squatsEx);
+                updateStatus(`Direction: up. Еxercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction
                 if (squatsEx.minAngle > 95.0) {
@@ -1158,6 +1160,7 @@ function pulltopAssistance(angles) {
                         playVoice("Еxercise is started!");
                     }
                     isStarted = squatsEx.counter > 1;
+                    updateStatus(`Direction: up. Еxercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
 
                     if (squatsEx.minAngle > minAngle + downAmplitude) {
                         squatsEx.incorrectInstructions[0] = incorrectVoiceInstructions[0];
@@ -1189,6 +1192,7 @@ function pulltopAssistance(angles) {
                 squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
                 resetMinMax(squatsEx);
                 squatsEx.startTime = Date.now();
+                updateStatus(`Direction: down. Еxercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction
             {
@@ -1200,6 +1204,7 @@ function pulltopAssistance(angles) {
                 }
                 else {
                     squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+                    updateStatus(`Direction: down. Еxercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
 
                     if (squatsEx.maxAngle > 176.0) {
                         squatsEx.incorrectInstructions[2] = incorrectVoiceInstructions[2];
@@ -1246,7 +1251,7 @@ const processVideoFrame = () => {
     }
 };
 
-function _draw() {
+function _draw(poses) {
     context.strokeStyle = "blue";
     context.lineWidth = 3;
 
@@ -1281,7 +1286,7 @@ function _draw() {
 
 onBodyPoseResult = (result) => {
     poses = result;
-    _draw();
+    _draw(poses);
     updateAnglesDisplay(poses[0]);
 }
 
