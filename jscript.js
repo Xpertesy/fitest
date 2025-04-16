@@ -1122,7 +1122,8 @@ function pulltopAssistance(angles) {
     squatsEx.minHipAngle = Math.min(squatsEx.minHipAngle, theHipAngle);
 
     let direction = squatsEx.direction == 0 ? 'none' : (squatsEx.direction > 0 ? 'down' : 'up');
-    console.log(`theAngle: ${theAngle}, direction: ${direction}, angle: ${squatsEx.angle}, minAngle: ${squatsEx.minAngle}, maxAngle: ${squatsEx.maxAngle}, dirCount: ${squatsEx.dirCount}, counter: ${squatsEx.counter}, startTime: ${squatsEx.startTime}`);
+    console.log(`theAngle: ${theAngle}, direction: ${direction}, angle: ${squatsEx.angle}, minAngle: ${squatsEx.minAngle}, maxAngle: ${squatsEx.maxAngle}, moveCounter: ${squatsEx.moveCounter}, dirCount: ${squatsEx.dirCount}, kneeAngle: ${angles.leftKnee.toFixed(1)}, counter: ${squatsEx.counter}, startTime: ${squatsEx.startTime}`);
+
     if (squatsEx.angle < theAngle) //up
     {
         squatsEx.angle = theAngle;
@@ -1140,7 +1141,7 @@ function pulltopAssistance(angles) {
                     console.log("notice: squatsEx.minAngle > 95.0");
 
                     if (isStarted) {
-                        startStopButtonClick();
+                        stopButtonClick();
                         playVoice("Еxercise is completed!");
                     }
                     else {
@@ -1149,7 +1150,8 @@ function pulltopAssistance(angles) {
                         resetRecordings();
                     }
                 }
-                else {
+                else if (angles.leftKnee.toFixed(1) < 90.0)
+                {
                     squatsEx.direction = EXCERCISE_DIRECTION_UP;
                     squatsEx.counter++;
                     if (squatsEx.counter == 2) {
