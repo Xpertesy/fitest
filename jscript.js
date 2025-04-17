@@ -1367,6 +1367,7 @@ fileVideoElement.volume = 0;
 function fileVideoElementOnPlay() {
     processVideoFrame();
     console.log("Voice command: GO");
+    updateStatus("Voice command: GO");
     startExerciseAssistance();
     //recognition.start();
 }
