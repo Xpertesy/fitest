@@ -1271,18 +1271,18 @@ function _draw(poses) {
     }
 
     // Draw all the tracked landmark points
-    for (let i = 0; i < poses.length; i++) {
-        let pose = poses[i];
-        for (let j = 0; j < pose.keypoints.length; j++) {
-            let keypoint = pose.keypoints[j];
-            // Only draw a circle if the keypoint's confidence is bigger than 0.1
-            context.beginPath();
-            context.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
-            context.fillStyle = "red";
-            context.fill();
-            context.stroke();
-        }
-    }
+    // for (let i = 0; i < poses.length; i++) {
+    //     let pose = poses[i];
+    //     for (let j = 0; j < pose.keypoints.length; j++) {
+    //         let keypoint = pose.keypoints[j];
+    //         // Only draw a circle if the keypoint's confidence is bigger than 0.1
+    //         context.beginPath();
+    //         context.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
+    //         context.fillStyle = "red";
+    //         context.fill();
+    //         context.stroke();
+    //     }
+    // }
 }
 
 onBodyPoseResult = (result) => {
