@@ -1287,12 +1287,13 @@ function _draw(poses) {
 
 onBodyPoseResult = (result) => {
     poses = result;
-    _draw(poses);
+    //_draw(poses);
     updateAnglesDisplay(poses[0]);
 }
 
 onBodyPoseResultOffline = (result) => {
     onBodyPoseResult(result);
+    _draw(result);
     fileVideoElement.requestVideoFrameCallback(processVideoFrame);
 }
 
