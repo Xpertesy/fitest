@@ -1152,8 +1152,7 @@ function pulltopAssistance(angles) {
                         resetRecordings();
                     }
                 }
-                else if (angles.leftKnee.toFixed(1) < 90.0)
-                {
+                else if (angles.leftKnee.toFixed(1) < 90.0) {
                     squatsEx.direction = EXCERCISE_DIRECTION_UP;
                     squatsEx.counter++;
                     if (squatsEx.counter == 2) {
@@ -1263,6 +1262,7 @@ function _draw(poses) {
             let pointBIndex = connections[j][1];
             let pointA = pose.keypoints[pointAIndex];
             let pointB = pose.keypoints[pointBIndex];
+
             context.beginPath();
             context.moveTo(pointA.x, pointA.y);
             context.lineTo(pointB.x, pointB.y);
@@ -1280,6 +1280,7 @@ function _draw(poses) {
             context.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
             context.fillStyle = "red";
             context.fill();
+            context.stroke();
         }
     }
 }
