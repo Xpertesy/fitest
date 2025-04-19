@@ -233,7 +233,7 @@ function compileAndPlayInstructions() {
     }
     else {
         Object.keys(squatsEx.correctInstructions).forEach(key => {
-            notice = notice + " - " + squatsEx.incorrectInstructions[key];
+            notice = notice + " - " + squatsEx.correctInstructions[key];
             playVoice(squatsEx.correctInstructions[key]);
         });
     }
@@ -915,9 +915,9 @@ function backbridgeAssistance(angles) {
     if (!squatsEx) {
         squatsEx = getNewSquatsEx(theAngle, theHipAngle);
         minAngle = 45;
-        downAmplitude = 10;
+        downAmplitude = 20;
         maxAngle = 180;
-        upAmplitude = 10;
+        upAmplitude = 20;
         directionCounter = 5;
         invalidRange = [75, 150];
         if (!isRecording && camera.g) {
@@ -931,7 +931,7 @@ function backbridgeAssistance(angles) {
 
         if (isStarted) {
             stopButtonClick();
-            playVoice("Еxercise is completed!");
+            playVoice("Exercise is completed!");
         }
         else {
             opsFalseExeDetection(squatsEx.counter);
@@ -962,7 +962,7 @@ function backbridgeAssistance(angles) {
             if (squatsEx.direction == EXCERCISE_DIRECTION_NONE) {
                 squatsEx.direction = EXCERCISE_DIRECTION_UP;
                 resetMinMax(squatsEx);
-                updateStatus(`Direction: up. Еxercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
+                updateStatus(`Direction: up. Exercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_UP) {//Changed direction from down to up
                 if (squatsEx.minAngle > 120.0) {
@@ -970,7 +970,7 @@ function backbridgeAssistance(angles) {
 
                     if (isStarted) {
                         stopButtonClick();
-                        playVoice("Еxercise is completed!");
+                        playVoice("Exercise is completed!");
                     }
                     else {
                         opsFalseExeDetection(squatsEx.counter);
@@ -980,13 +980,13 @@ function backbridgeAssistance(angles) {
                 }
                 else {
                     squatsEx.direction = EXCERCISE_DIRECTION_UP;
-                    squatsEx.counter++;
-                    if (squatsEx.counter == 2) {
-                        playVoice("Еxercise is started!");
-                    }
-                    isStarted = squatsEx.counter > 1;
-                    updateStatus(`Direction: up. Еxercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
-                    if (squatsEx.minAngle > minAngle + downAmplitude) {
+                    // squatsEx.counter++;
+                    // if (squatsEx.counter == 2) {
+                    //     playVoice("Exercise is started!");
+                    // }
+                    // isStarted = squatsEx.counter > 1;
+                    updateStatus(`Direction: up. Exercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
+                    if (isStarted && squatsEx.minAngle > minAngle + downAmplitude) {
                         squatsEx.incorrectInstructions[0] = incorrectVoiceInstructions[0];
                         console.log(squatsEx.incorrectInstructions[0] + ":" + squatsEx.minAngle);
                     }
@@ -1002,10 +1002,9 @@ function backbridgeAssistance(angles) {
                     //     // squatsEx.incorrectInstructions[3] = incorrectVoiceInstructions[3];
                     //     // console.log(squatsEx.incorrectInstructions[3]);
                     // }
-                    let notice = "" + (squatsEx.counter);
-                    playVoice(notice);
-                    console.log(notice + ":" + squatsEx.angle);
-
+                    // let notice = "" + (squatsEx.counter);
+                    // playVoice(notice);
+                    // console.log(notice + ":" + squatsEx.angle);
                     resetMinMax(squatsEx);
                 }
             }
@@ -1023,7 +1022,7 @@ function backbridgeAssistance(angles) {
                 squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
                 squatsEx.startTime = Date.now();
                 resetMinMax(squatsEx);
-                updateStatus(`Direction: down. Еxercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
+                updateStatus(`Direction: down. Exercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
             }
             else if (squatsEx.direction != EXCERCISE_DIRECTION_DOWN)//Change direction from up to down
             {
@@ -1041,12 +1040,27 @@ function backbridgeAssistance(angles) {
                 }
                 else {
                     squatsEx.direction = EXCERCISE_DIRECTION_DOWN;
+                    squatsEx.counter++;
+                    if (squatsEx.counter == 2) {
+                        playVoice("Exercise is started!");
+                    }
+                    isStarted = squatsEx.counter > 1;
+                    
                     updateStatus(`Direction: down. Еxercise is started: ${isStarted}, counter: ${squatsEx.counter}`);
 
                     if (squatsEx.maxAngle < maxAngle - upAmplitude) {
                         squatsEx.incorrectInstructions[1] = incorrectVoiceInstructions[1];
                         console.log(squatsEx.incorrectInstructions[1]);
                     }
+                    else{
+                        squatsEx.correctInstructions[0] = correctVoiceInstructions[0];
+                        console.log(squatsEx.correctInstructions[0]);
+                    }
+
+                    let notice = "" + (squatsEx.counter);
+                    playVoice(notice);
+                    console.log(notice + ":" + squatsEx.angle);
+                    
                     // else if (squatsEx.maxAngle > 176.0) {
                     //     // squatsEx.incorrectInstructions[4] = incorrectVoiceInstructions[4];
                     //     // console.log(squatsEx.incorrectInstructions[4]);
@@ -1106,7 +1120,7 @@ function pulltopAssistance(angles) {
     }
     if (!squatsEx) {
         squatsEx = getNewSquatsEx(theAngle, theHipAngle);
-        minAngle = 65;
+        minAngle = 45;
         downAmplitude = 15;
         maxAngle = 180;
         upAmplitude = 15;
@@ -1378,7 +1392,7 @@ function fileVideoElementOnPause() {
     //recognition.stop();
     console.log("Voice command: STOP");
     stopExerciseAssistance();
-    //compileAndPlayInstructions();
+    compileAndPlayInstructions();
 }
 
 uploadVideo.addEventListener('change', (event) => {
