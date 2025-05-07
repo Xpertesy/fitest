@@ -294,6 +294,7 @@ const titles = {
 };
 
 title.textContent = titles[EXE_TYPE];
+title.textContent = title.textContent + ' Test'
 if (CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_LEFT) {
     title.textContent = title.textContent + ' Left View'
 }
