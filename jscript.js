@@ -93,11 +93,9 @@ const blazePoseConnections = [
 //     context.clearRect(0, 0, canvas.width, canvas.height);
 //     //drawMirroredImage(results.image);
 //     context.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-
 //     if (results.poseLandmarks) {
 //         // Draw skeleton
 //         drawSkeleton(results.poseLandmarks);
-
 //         // Draw keypoints
 //         results.poseLandmarks.forEach((landmark, index) => {
 //             if (index >= 11 && index <= 32 && landmark.visibility > 0.5) { // Ignore face landmarks
@@ -107,7 +105,6 @@ const blazePoseConnections = [
 //                 context.fill();
 //             }
 //         });
-
 //         // Update angles
 //         updateAnglesDisplay(results.poseLandmarks);
 //     }
@@ -117,23 +114,27 @@ let onFrameFunc = onFrame;
 
 // // Start Mediapipe Camera
 const camera = new Camera(videoElement, {
-    onFrame: onFrameFunc,
+    //onFrame: onFrameFunc,
     //width: 1280,
     //height: 720
 });
 
 
 async function onFrame() {
-    onFrameFunc = onFrameNone;
-    canvas.width = window.innerWidth * 0.9;
-    canvas.height = canvas.width * videoElement.videoHeight / videoElement.videoWidth;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-    poses = await detector.estimatePoses(canvas);
-    if (poses && poses.length > 0) {
-        onBodyPoseResult(poses[0]);
-        _draw(poses[0].keypoints);
+    //onFrameFunc = onFrameNone;
+    if (videoElement.videoHeight > 0 && videoElement.videoWidth > 0) {
+        canvas.width = window.innerWidth * 0.9;
+        canvas.height = canvas.width * videoElement.videoHeight / videoElement.videoWidth;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        poses = await detector.estimatePoses(canvas);
+        if (poses && poses.length > 0) {
+            onBodyPoseResult(poses[0]);
+            _draw(poses[0].keypoints);
+        }
     }
+    
+    requestAnimationFrame(onFrameFunc);
 
     //bodyPose.detect(canvas, onBodyPoseResult);
     //await pose.send({ image: videoElement });
@@ -227,9 +228,12 @@ function startButtonClick() {
     camera.start();
     startExerciseAssistance();
     console.log('Pose detection started');
+    onFrameFunc = onFrame;
+    onFrameFunc();
 }
 
 function stopButtonClick() {
+    onFrameFunc = onFrameNone;
     isRunning = false;
     button.textContent = 'Start';
     isRecording = false;
@@ -426,7 +430,7 @@ let maxMoveCounter = 120;
 let isStarted = false;
 
 function squatsAssistance(angles) {
-    onFrameFunc = onFrame;
+    //onFrameFunc = onFrame;
 
     const theAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightKnee.toFixed(1))) : Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
     const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
@@ -934,7 +938,7 @@ function pullhorisontalAssistance(angles) {
 }
 
 function backbridgeAssistance(angles) {
-    onFrameFunc = onFrame;
+    //onFrameFunc = onFrame;
 
     // const theAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightKnee.toFixed(1))) : Math.floor(parseFloat(angles.leftKnee.toFixed(1)));
     // const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
@@ -1147,7 +1151,7 @@ function backbridgeAssistance(angles) {
 }
 
 function pulltopAssistance(angles) {
-    onFrameFunc = onFrame;
+    //onFrameFunc = onFrame;
     const theAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightElbow.toFixed(1))) : Math.floor(parseFloat(angles.leftElbow.toFixed(1)));
     const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
 
