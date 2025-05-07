@@ -130,7 +130,7 @@ async function onFrame() {
         poses = await detector.estimatePoses(canvas);
         if (poses && poses.length > 0) {
             onBodyPoseResult(poses[0]);
-            _draw(poses[0].keypoints);
+            //_draw(poses[0].keypoints);
         }
     }
     
