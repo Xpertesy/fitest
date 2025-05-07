@@ -100,6 +100,7 @@
             padding: 10px;
             text-align: center;
         }
+
         #statusDisplay {
             width: 80%;
             margin-bottom: 20px;
@@ -148,13 +149,23 @@
     <!-- <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script> -->
-    <script src="p5.min.js"></script>
-    <script src="ml5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+     -->
+    <!-- <script src="https://unpkg.com/@tensorflow/tfjs"></script>    
+    <script src="https://unpkg.com/@tensorflow-models/posenet"></script> -->
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet"></script> -->
+
+
+    <!-- <script src="p5.min.js"></script>
+    <script src="ml5.min.js"></script> -->
+
 </head>
 
 <body>
-    <a href="index.html" class="back-button">Home</a>
+    <a href="index.html" class="back-button">Home v.1</a>
+
     <h1 id="maintitle">Squats</h1>
 
     <canvas id="fitnessCanvas" width="640" height="360"></canvas>
@@ -166,9 +177,16 @@
     <video id="hidenVideo" style="display: none;"></video>
     <input type="file" id="uploadVideo" accept="video/*">
 
-    <script type="text/javascript" src="jscript.js"></script>
-
-
 </body>
+<!-- Require the peer dependencies of pose-detection. -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+
+<!-- You must explicitly require a TF.js backend if you're not using the TF.js union bundle. -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+<!-- Alternatively you can use the WASM backend: <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm/dist/tf-backend-wasm.js"></script> -->
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+<script type="text/javascript" src="jscript.js"></script>
 
 </html>

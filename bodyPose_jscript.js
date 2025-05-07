@@ -1,6 +1,4 @@
-//let net;
-
-(async function () {
+(function () {
     (params = {}), (r = /([^&=]+)=?([^&]*)/g);
 
     function d(s) {
@@ -10,18 +8,7 @@
         search = location.search;
     while ((match = r.exec(search.substring(1))))
         params[d(match[1])] = d(match[2]);
-    //net = await posenet.load();
-
 })();
-
-const imageScaleFactor = 0.50;
-const flipHorizontal = false;
-const outputStride = 16;
-
-//const imageElement = document.getElementById('cat');
-// load the posenet model
-
-//const pose = await net.estimateSinglePose(imageElement, scaleFactor, flipHorizontal, outputStride);
 
 // Video capturing setup
 const videoElement = document.getElementById("hidenVideo");
@@ -41,23 +28,6 @@ const CAMERA_VIEW_SIDE_LEFT = 0;
 const CAMERA_VIEW_SIDE_RIGHT = 1;
 
 
-let detector;
-(async function initDetector() {
-    updateStatus("Warming model...");
-
-    const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER };
-    detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
-    updateStatus("Model is ready...");
-
-    //console.log(detector);
-})();
-
-
-//let bodyPose = ml5.bodyPose();
-//let bodyPose = ml5.bodyPose("BlazePose");
-//let detector
-//const connections = bodyPose.getSkeleton();
-let poses = [];
 
 // Set canvas size dynamically
 const setCanvasSize = () => {
@@ -71,72 +41,67 @@ window.addEventListener('resize', setCanvasSize);
 
 // Define BlazePose connections excluding face landmarks
 const blazePoseConnections = [
-    [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], [6, 12], [5, 11],
-    [11, 12], [11, 13], [13, 15], [12, 14], [14, 16]
+    [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+    [11, 23], [12, 24], [23, 25], [24, 26], [25, 27],
+    [26, 28], [27, 29], [28, 30]
 ];
 
 // Mediapipe Pose setup
-// const pose = new Pose({
-//     locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
-// });
-// pose.setOptions({
-//     modelComplexity: 1,
-//     smoothLandmarks: true,
-//     enableSegmentation: false,
-//     smoothSegmentation: true,
-//     minDetectionConfidence: 0.9,
-//     minTrackingConfidence: 0.5
-// });
-// pose.onResults((results) => {
-//     canvas.width = window.innerWidth * 0.9;
-//     canvas.height = canvas.width * results.image.height / results.image.width;
-//     context.clearRect(0, 0, canvas.width, canvas.height);
-//     //drawMirroredImage(results.image);
-//     context.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+const pose = new Pose({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+});
+pose.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    smoothSegmentation: true,
+    minDetectionConfidence: 0.9,
+    minTrackingConfidence: 0.5
+});
+pose.onResults((results) => {
+    canvas.width = window.innerWidth * 0.9;
+    canvas.height = canvas.width * results.image.height / results.image.width;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    //drawMirroredImage(results.image);
+    context.drawImage(results.image, 0, 0, canvas.width, canvas.height);
 
-//     if (results.poseLandmarks) {
-//         // Draw skeleton
-//         drawSkeleton(results.poseLandmarks);
+    if (results.poseLandmarks) {
+        // Draw skeleton
+        drawSkeleton(results.poseLandmarks);
 
-//         // Draw keypoints
-//         results.poseLandmarks.forEach((landmark, index) => {
-//             if (index >= 11 && index <= 32 && landmark.visibility > 0.5) { // Ignore face landmarks
-//                 context.beginPath();
-//                 context.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
-//                 context.fillStyle = "red";
-//                 context.fill();
-//             }
-//         });
+        // Draw keypoints
+        results.poseLandmarks.forEach((landmark, index) => {
+            if (index >= 11 && index <= 32 && landmark.visibility > 0.5) { // Ignore face landmarks
+                context.beginPath();
+                context.arc(landmark.x * canvas.width, landmark.y * canvas.height, 5, 0, 2 * Math.PI);
+                context.fillStyle = "red";
+                context.fill();
+            }
+        });
 
-//         // Update angles
-//         updateAnglesDisplay(results.poseLandmarks);
-//     }
-// });
+        // Update angles
+        updateAnglesDisplay(results.poseLandmarks);
+    }
+});
 function onFrameNone() { }
 let onFrameFunc = onFrame;
 
 // // Start Mediapipe Camera
 const camera = new Camera(videoElement, {
-    onFrame: onFrameFunc,
+    onFrame: onFrame,
     //width: 1280,
     //height: 720
 });
 
 
 async function onFrame() {
-    onFrameFunc = onFrameNone;
+    //sonFrameFunc = onFrameNone;
     canvas.width = window.innerWidth * 0.9;
     canvas.height = canvas.width * videoElement.videoHeight / videoElement.videoWidth;
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-    poses = await detector.estimatePoses(canvas);
-    if (poses && poses.length > 0) {
-        onBodyPoseResult(poses[0]);
-        _draw(poses[0].keypoints);
-    }
-
     //bodyPose.detect(canvas, onBodyPoseResult);
-    //await pose.send({ image: videoElement });
+    await pose.send({ image: videoElement });
 }
 
 // Calculate angle between three points
@@ -148,50 +113,45 @@ const calculateAngle = (a, b, c) => {
 };
 
 // Draw connections between keypoints
-// const drawSkeleton = (landmarks) => {
-//     context.strokeStyle = "blue";
-//     context.lineWidth = 3;
+const drawSkeleton = (landmarks) => {
+    context.strokeStyle = "blue";
+    context.lineWidth = 3;
 
-//     blazePoseConnections.forEach(([start, end]) => {
-//         const startPoint = landmarks[start];
-//         const endPoint = landmarks[end];
+    blazePoseConnections.forEach(([start, end]) => {
+        const startPoint = landmarks[start];
+        const endPoint = landmarks[end];
 
-//         if (startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
-//             context.beginPath();
-//             context.moveTo(startPoint.x * canvas.width, startPoint.y * canvas.height);
-//             context.lineTo(endPoint.x * canvas.width, endPoint.y * canvas.height);
-//             context.stroke();
-//         }
-//     });
-// };
+        if (startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
+            context.beginPath();
+            context.moveTo(startPoint.x * canvas.width, startPoint.y * canvas.height);
+            context.lineTo(endPoint.x * canvas.width, endPoint.y * canvas.height);
+            context.stroke();
+        }
+    });
+};
 const angles = {};
 // Update angles display
 const updateAnglesDisplay = (landmarks) => {
-    try {
-        if (landmarks) {
-            // Right side angles
-            angles.rightElbow = calculateAngle(landmarks[6], landmarks[8], landmarks[10]);
-            angles.rightShoulder = calculateAngle(landmarks[8], landmarks[6], landmarks[12]);
-            angles.rightHip = calculateAngle(landmarks[6], landmarks[12], landmarks[14]);
-            angles.rightKnee = calculateAngle(landmarks[12], landmarks[14], landmarks[16]);
+    // Right side angles
+    angles.rightElbow = calculateAngle(landmarks[11], landmarks[13], landmarks[15]);
+    angles.rightShoulder = calculateAngle(landmarks[13], landmarks[11], landmarks[23]);
+    angles.rightHip = calculateAngle(landmarks[11], landmarks[23], landmarks[25]);
+    angles.rightKnee = calculateAngle(landmarks[23], landmarks[25], landmarks[27]);
 
-            // Left side angles
-            angles.leftElbow = calculateAngle(landmarks[5], landmarks[7], landmarks[9]);
-            angles.leftShoulder = calculateAngle(landmarks[7], landmarks[5], landmarks[11]);
-            angles.leftHip = calculateAngle(landmarks[5], landmarks[11], landmarks[13]);
-            angles.leftKnee = calculateAngle(landmarks[11], landmarks[13], landmarks[15]);
+    // Left side angles
+    angles.leftElbow = calculateAngle(landmarks[12], landmarks[14], landmarks[16]);
+    angles.leftShoulder = calculateAngle(landmarks[14], landmarks[12], landmarks[24]);
+    angles.leftHip = calculateAngle(landmarks[12], landmarks[24], landmarks[26]);
+    angles.leftKnee = calculateAngle(landmarks[24], landmarks[26], landmarks[28]);
 
-            anglesDisplay.textContent = `
+    anglesDisplay.textContent = `
                 Right Hip: ${angles.rightHip.toFixed(1)}°, 
                 Right Knee: ${angles.rightKnee.toFixed(1)}°, 
             `;
 
-            exerciseAssistance(angles);
-        }
-    } catch (error) {
-        console.error(error + " : " + landmarks);
-    }
+    exerciseAssistance(angles);
 };
+
 
 // function drawMirroredImage(image) {
 //     context.save();
@@ -294,12 +254,9 @@ const titles = {
 };
 
 title.textContent = titles[EXE_TYPE];
-if (CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_LEFT) {
-    title.textContent = title.textContent + ' Left View'
-}
-else if (CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT) {
-    title.textContent = title.textContent + ' Right View'
-}
+
+
+
 
 let squatsCorrectVoiceInstructions = [
     "Good job, keep your back straight!", //0            
@@ -350,7 +307,7 @@ let pullhorisontalIncorrectVoiceInstructions = [
     "Don't fall back, keep your back straight and your chest forward!", //2
     "Don't raise your shoulders, keep your hands down!",//3
     "Don't straighten your arms all the way!",//4
-    "Don't rush! Move more slowly!", //5
+    "Don't rush! Мovе more slowly!", //5
     "You can move faster!" //6
 ];
 
@@ -506,7 +463,7 @@ function squatsAssistance(angles) {
                     exeConfig.direction = EXCERCISE_DIRECTION_UP;
                     exeConfig.counter++;
                     if (exeConfig.counter == 2) {
-                        //playVoice("Exercise is started!");
+                        playVoice("Exercise is started!");
                     }
                     isStarted = exeConfig.counter > 1;
                     updateStatus(`Direction: up. Exercise is started: ${isStarted}, counter: ${exeConfig.counter}`);
@@ -674,7 +631,7 @@ function legspushAssistance(angles) {
                     exeConfig.direction = EXCERCISE_DIRECTION_UP;
                     exeConfig.counter++;
                     if (exeConfig.counter == 2) {
-                        //playVoice("Exercise is started!");
+                        playVoice("Exercise is started!");
                     }
                     isStarted = exeConfig.counter > 1;
 
@@ -832,7 +789,7 @@ function pullhorisontalAssistance(angles) {
                     exeConfig.direction = EXCERCISE_DIRECTION_UP;
                     exeConfig.counter++;
                     if (exeConfig.counter == 2) {
-                        //playVoice("Exercise is started!");
+                        playVoice("Exercise is started!");
                     }
                     isStarted = exeConfig.counter > 1;
 
@@ -1017,7 +974,7 @@ function backbridgeAssistance(angles) {
                     exeConfig.direction = EXCERCISE_DIRECTION_UP;
                     // exeConfig.counter++;
                     // if (exeConfig.counter == 2) {
-                    //     //playVoice("Exercise is started!");
+                    //     playVoice("Exercise is started!");
                     // }
                     // isStarted = exeConfig.counter > 1;
                     updateStatus(`Direction: up. Exercise is started: ${isStarted}, counter: ${exeConfig.counter}`);
@@ -1077,17 +1034,17 @@ function backbridgeAssistance(angles) {
                     exeConfig.direction = EXCERCISE_DIRECTION_DOWN;
                     exeConfig.counter++;
                     if (exeConfig.counter == 2) {
-                        //playVoice("Exercise is started!");
+                        playVoice("Exercise is started!");
                     }
                     isStarted = exeConfig.counter > 1;
-
+                    
                     updateStatus(`Direction: down. Exercise is started: ${isStarted}, counter: ${exeConfig.counter}`);
 
                     if (exeConfig.maxAngle < maxAngle - upAmplitude) {
                         exeConfig.incorrectInstructions[1] = incorrectVoiceInstructions[1];
                         console.log(exeConfig.incorrectInstructions[1]);
                     }
-                    else {
+                    else{
                         exeConfig.correctInstructions[0] = correctVoiceInstructions[0];
                         console.log(exeConfig.correctInstructions[0]);
                     }
@@ -1095,7 +1052,7 @@ function backbridgeAssistance(angles) {
                     let notice = "" + (exeConfig.counter);
                     playVoice(notice);
                     console.log(notice + ":" + exeConfig.angle);
-
+                    
                     // else if (exeConfig.maxAngle > 176.0) {
                     //     // exeConfig.incorrectInstructions[4] = incorrectVoiceInstructions[4];
                     //     // console.log(exeConfig.incorrectInstructions[4]);
@@ -1146,7 +1103,6 @@ function backbridgeAssistance(angles) {
 }
 
 function pulltopAssistance(angles) {
-    onFrameFunc = onFrame;
     const theAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightElbow.toFixed(1))) : Math.floor(parseFloat(angles.leftElbow.toFixed(1)));
     const theHipAngle = CAMERA_VIEW_SIDE == CAMERA_VIEW_SIDE_RIGHT ? Math.floor(parseFloat(angles.rightHip.toFixed(1))) : Math.floor(parseFloat(angles.leftHip.toFixed(1)));
 
@@ -1206,7 +1162,7 @@ function pulltopAssistance(angles) {
                     exeConfig.direction = EXCERCISE_DIRECTION_UP;
                     exeConfig.counter++;
                     if (exeConfig.counter == 2) {
-                        //playVoice("Exercise is started!");
+                        playVoice("Exercise is started!");
                     }
                     isStarted = exeConfig.counter > 1;
                     updateStatus(`Direction: up. Exercise is started: ${isStarted}, counter: ${exeConfig.counter}`);
@@ -1288,70 +1244,33 @@ function opsFalseExeDetection(counter) {
     }
 
 }
-// const processVideoFrame = async () => {
-//     if (!fileVideoElement.paused && !fileVideoElement.ended) {
-//         poses = await pose.send({ image: fileVideoElement });
-//         fileVideoElement.requestVideoFrameCallback(processVideoFrame);
-//     }
-// };
 
 const processVideoFrame = async () => {
     if (!fileVideoElement.paused && !fileVideoElement.ended) {
-
-
-        canvas.width = window.innerWidth * 0.9;
-        canvas.height = canvas.width * fileVideoElement.videoHeight / fileVideoElement.videoWidth;
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(fileVideoElement, 0, 0, canvas.width, canvas.height);
-        poses = await detector.estimatePoses(canvas);
-        // const input = tf.browser.fromPixels(canvas);
-        // poses = await net.estimateSinglePose(input, {
-        //     flipHorizontal: false,
-        //   });
-        //console.log(poses);
-
-        onBodyPoseResultOffline(poses);
-
-        //bodyPose.detect(canvas, onBodyPoseResultOffline);
+        await pose.send({ image: fileVideoElement });
+        fileVideoElement.requestVideoFrameCallback(processVideoFrame);
     }
 };
 
-const drawSegment = ([ay, ax], [by, bx], color) => {
-    context.beginPath();
-    context.moveTo(ax, ay);
-    context.lineTo(bx, by);
-    context.lineWidth = 2;
-    context.strokeStyle = color;
-    context.stroke();
-};
+function _draw(poses) {
+    context.strokeStyle = "blue";
+    context.lineWidth = 3;
 
-function _draw(keypoints) {
-    if (keypoints != null) {
-        this.drawKeypoints(keypoints);
-        this.drawSkeleton(keypoints);
+    // Draw the skeleton connections
+    for (let i = 0; i < poses.length; i++) {
+        let pose = poses[i];
+        for (let j = 0; j < connections.length; j++) {
+            let pointAIndex = connections[j][0];
+            let pointBIndex = connections[j][1];
+            let pointA = pose.keypoints[pointAIndex];
+            let pointB = pose.keypoints[pointBIndex];
+
+            context.beginPath();
+            context.moveTo(pointA.x, pointA.y);
+            context.lineTo(pointB.x, pointB.y);
+            context.stroke();
+        }
     }
-    // const adjacentKeyPoints = posenet.getAdjacentKeyPoints(landmarks, 0.5);
-    //   adjacentKeyPoints.forEach(([from, to]) => {
-    //     drawSegment([from.y, from.x], [to.y, to.x], 'aqua');
-    //   });
-    // context.strokeStyle = "blue";
-    // context.lineWidth = 3;
-
-    // // Draw the skeleton connections
-    // context.strokeStyle = "blue";
-    // context.lineWidth = 3;
-
-    // blazePoseConnections.forEach(([start, end]) => {
-    //     const startPoint = landmarks[start];
-    //     const endPoint = landmarks[end];
-
-    //     if (startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
-    //         context.beginPath();
-    //         context.moveTo(startPoint.x * canvas.width, startPoint.y * canvas.height);
-    //         context.lineTo(endPoint.x * canvas.width, endPoint.y * canvas.height);
-    //         context.stroke();
-    //     }
-    //});
 
     // Draw all the tracked landmark points
     // for (let i = 0; i < poses.length; i++) {
@@ -1368,82 +1287,15 @@ function _draw(keypoints) {
     // }
 }
 
-function drawKeypoints(keypoints) {
-    const keypointInd =
-        poseDetection.util.getKeypointIndexBySide(poseDetection.SupportedModels.MoveNet);
-    context.fillStyle = 'White';
-    context.strokeStyle = 'White';
-    context.lineWidth = 2;
-
-    for (const i of keypointInd.middle) {
-        this.drawKeypoint(keypoints[i]);
-    }
-
-    context.fillStyle = 'Green';
-    for (const i of keypointInd.left) {
-        this.drawKeypoint(keypoints[i]);
-    }
-
-    context.fillStyle = 'Orange';
-    for (const i of keypointInd.right) {
-        this.drawKeypoint(keypoints[i]);
-    }
-}
-
-function drawKeypoint(keypoint) {
-    // If score is null, just show the keypoint.
-    const score = keypoint.score != null ? keypoint.score : 1;
-    const scoreThreshold = 0.3;
-
-    if (score >= scoreThreshold) {
-        const circle = new Path2D();
-        circle.arc(keypoint.x, keypoint.y, 2, 0, 2 * Math.PI);
-        context.fill(circle);
-        context.stroke(circle);
-    }
-}
-
-/**
- * Draw the skeleton of a body on the video.
- * @param keypoints A list of keypoints.
- */
-function drawSkeleton(keypoints) {
-    context.fillStyle = 'White';
-    context.strokeStyle = 'White';
-    context.lineWidth = 2;
-
-    poseDetection.util.getAdjacentPairs(poseDetection.SupportedModels.MoveNet).forEach(([
-        i, j
-    ]) => {
-        const kp1 = keypoints[i];
-        const kp2 = keypoints[j];
-
-        // If score is null, just show the keypoint.
-        const score1 = kp1.score != null ? kp1.score : 1;
-        const score2 = kp2.score != null ? kp2.score : 1;
-        const scoreThreshold = 0.3;
-
-        if (score1 >= scoreThreshold && score2 >= scoreThreshold) {
-            context.beginPath();
-            context.moveTo(kp1.x, kp1.y);
-            context.lineTo(kp2.x, kp2.y);
-            context.stroke();
-        }
-    });
-}
-
 onBodyPoseResult = (result) => {
-    //poses = result;
+    poses = result;
     //_draw(poses);
-    updateAnglesDisplay(result.keypoints);
+    updateAnglesDisplay(poses[0]);
 }
 
-onBodyPoseResultOffline = (poses) => {
-    if (poses && poses.length > 0) {
-        onBodyPoseResult(poses[0]);
-        _draw(poses[0].keypoints);
-    }
-
+onBodyPoseResultOffline = (result) => {
+    onBodyPoseResult(result);
+    _draw(result);
     fileVideoElement.requestVideoFrameCallback(processVideoFrame);
 }
 
